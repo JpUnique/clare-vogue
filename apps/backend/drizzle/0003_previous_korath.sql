@@ -1,0 +1,1 @@
+ALTER TABLE "customer_events" ADD COLUMN "changed_fields" jsonb DEFAULT '[]'::jsonb NOT NULL;

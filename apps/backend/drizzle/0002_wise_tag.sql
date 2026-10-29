@@ -1,0 +1,11 @@
+CREATE INDEX "customers_business_updated_idx" ON "customers" USING btree ("business_id","updated_at","id");--> statement-breakpoint
+ALTER TABLE "customers" ADD CONSTRAINT "customers_name_nonempty_check" CHECK (length(btrim("customers"."name")) > 0);--> statement-breakpoint
+ALTER TABLE "measurement_sets" ADD CONSTRAINT "measurement_sets_bust_positive_check" CHECK ("measurement_sets"."bust" is null or "measurement_sets"."bust" > 0);--> statement-breakpoint
+ALTER TABLE "measurement_sets" ADD CONSTRAINT "measurement_sets_waist_positive_check" CHECK ("measurement_sets"."waist" is null or "measurement_sets"."waist" > 0);--> statement-breakpoint
+ALTER TABLE "measurement_sets" ADD CONSTRAINT "measurement_sets_hips_positive_check" CHECK ("measurement_sets"."hips" is null or "measurement_sets"."hips" > 0);--> statement-breakpoint
+ALTER TABLE "measurement_sets" ADD CONSTRAINT "measurement_sets_shoulder_width_positive_check" CHECK ("measurement_sets"."shoulder_width" is null or "measurement_sets"."shoulder_width" > 0);--> statement-breakpoint
+ALTER TABLE "measurement_sets" ADD CONSTRAINT "measurement_sets_shoulder_to_waist_positive_check" CHECK ("measurement_sets"."shoulder_to_waist" is null or "measurement_sets"."shoulder_to_waist" > 0);--> statement-breakpoint
+ALTER TABLE "measurement_sets" ADD CONSTRAINT "measurement_sets_sleeve_length_positive_check" CHECK ("measurement_sets"."sleeve_length" is null or "measurement_sets"."sleeve_length" > 0);--> statement-breakpoint
+ALTER TABLE "measurement_sets" ADD CONSTRAINT "measurement_sets_armhole_positive_check" CHECK ("measurement_sets"."armhole" is null or "measurement_sets"."armhole" > 0);--> statement-breakpoint
+ALTER TABLE "measurement_sets" ADD CONSTRAINT "measurement_sets_dress_length_positive_check" CHECK ("measurement_sets"."desired_dress_length" is null or "measurement_sets"."desired_dress_length" > 0);--> statement-breakpoint
+ALTER TABLE "measurement_sets" ADD CONSTRAINT "measurement_sets_custom_array_check" CHECK (jsonb_typeof("measurement_sets"."custom_measurements") = 'array' and jsonb_array_length("measurement_sets"."custom_measurements") <= 30);

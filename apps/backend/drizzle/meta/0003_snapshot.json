@@ -1,0 +1,896 @@
+{
+  "id": "770d6592-caa9-4399-a6c2-547413fa6e0b",
+  "prevId": "94d02ec2-6ddf-4d04-b012-8dfa3fcc57b5",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.business_memberships": {
+      "name": "business_memberships",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "business_id": {
+          "name": "business_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "membership_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "membership_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "business_memberships_business_user_unique": {
+          "name": "business_memberships_business_user_unique",
+          "columns": [
+            {
+              "expression": "business_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "business_memberships_business_id_businesses_id_fk": {
+          "name": "business_memberships_business_id_businesses_id_fk",
+          "tableFrom": "business_memberships",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "business_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "business_memberships_user_id_users_id_fk": {
+          "name": "business_memberships_user_id_users_id_fk",
+          "tableFrom": "business_memberships",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "business_memberships_authorized_select": {
+          "name": "business_memberships_authorized_select",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "public"
+          ],
+          "using": "(\n        \"business_memberships\".\"user_id\"::text = nullif(current_setting('app.current_user_id', true), '')\n        OR \"business_memberships\".\"business_id\"::text = nullif(current_setting('app.current_business_id', true), '')\n      )"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.businesses": {
+      "name": "businesses",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "time_zone": {
+          "name": "time_zone",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Africa/Lagos'"
+        },
+        "currency_code": {
+          "name": "currency_code",
+          "type": "varchar(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'NGN'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "businesses_current_tenant": {
+          "name": "businesses_current_tenant",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"businesses\".\"id\"::text = nullif(current_setting('app.current_business_id', true), '')",
+          "withCheck": "\"businesses\".\"id\"::text = nullif(current_setting('app.current_business_id', true), '')"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.customer_events": {
+      "name": "customer_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "business_id": {
+          "name": "business_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "customer_event_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "changed_fields": {
+          "name": "changed_fields",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "customer_events_business_id_id_unique": {
+          "name": "customer_events_business_id_id_unique",
+          "columns": [
+            {
+              "expression": "business_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "customer_events_business_id_customer_id_id_unique": {
+          "name": "customer_events_business_id_customer_id_id_unique",
+          "columns": [
+            {
+              "expression": "business_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "customer_events_business_id_businesses_id_fk": {
+          "name": "customer_events_business_id_businesses_id_fk",
+          "tableFrom": "customer_events",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "business_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "customer_events_actor_id_users_id_fk": {
+          "name": "customer_events_actor_id_users_id_fk",
+          "tableFrom": "customer_events",
+          "tableTo": "users",
+          "columnsFrom": [
+            "actor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "customer_events_business_customer_fk": {
+          "name": "customer_events_business_customer_fk",
+          "tableFrom": "customer_events",
+          "tableTo": "customers",
+          "columnsFrom": [
+            "business_id",
+            "customer_id"
+          ],
+          "columnsTo": [
+            "business_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "customer_events_current_tenant": {
+          "name": "customer_events_current_tenant",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"customer_events\".\"business_id\"::text = nullif(current_setting('app.current_business_id', true), '')",
+          "withCheck": "\"customer_events\".\"business_id\"::text = nullif(current_setting('app.current_business_id', true), '')"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.customers": {
+      "name": "customers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "business_id": {
+          "name": "business_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_contact": {
+          "name": "preferred_contact",
+          "type": "customer_preferred_contact",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "internal_notes": {
+          "name": "internal_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "customers_business_id_id_unique": {
+          "name": "customers_business_id_id_unique",
+          "columns": [
+            {
+              "expression": "business_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "customers_business_updated_idx": {
+          "name": "customers_business_updated_idx",
+          "columns": [
+            {
+              "expression": "business_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "customers_business_id_businesses_id_fk": {
+          "name": "customers_business_id_businesses_id_fk",
+          "tableFrom": "customers",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "business_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "customers_current_tenant": {
+          "name": "customers_current_tenant",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"customers\".\"business_id\"::text = nullif(current_setting('app.current_business_id', true), '')",
+          "withCheck": "\"customers\".\"business_id\"::text = nullif(current_setting('app.current_business_id', true), '')"
+        }
+      },
+      "checkConstraints": {
+        "customers_name_nonempty_check": {
+          "name": "customers_name_nonempty_check",
+          "value": "length(btrim(\"customers\".\"name\")) > 0"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.measurement_sets": {
+      "name": "measurement_sets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "business_id": {
+          "name": "business_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "measured_at": {
+          "name": "measured_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit": {
+          "name": "unit",
+          "type": "measurement_unit",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "template_version": {
+          "name": "template_version",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ladies-dress-v1'"
+        },
+        "bust": {
+          "name": "bust",
+          "type": "numeric(8, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "waist": {
+          "name": "waist",
+          "type": "numeric(8, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hips": {
+          "name": "hips",
+          "type": "numeric(8, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shoulder_width": {
+          "name": "shoulder_width",
+          "type": "numeric(8, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shoulder_to_waist": {
+          "name": "shoulder_to_waist",
+          "type": "numeric(8, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sleeve_length": {
+          "name": "sleeve_length",
+          "type": "numeric(8, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "armhole": {
+          "name": "armhole",
+          "type": "numeric(8, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "desired_dress_length": {
+          "name": "desired_dress_length",
+          "type": "numeric(8, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "custom_measurements": {
+          "name": "custom_measurements",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "measurement_sets_business_id_id_unique": {
+          "name": "measurement_sets_business_id_id_unique",
+          "columns": [
+            {
+              "expression": "business_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "measurement_sets_business_id_customer_id_id_unique": {
+          "name": "measurement_sets_business_id_customer_id_id_unique",
+          "columns": [
+            {
+              "expression": "business_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "measurement_sets_customer_measured_at_idx": {
+          "name": "measurement_sets_customer_measured_at_idx",
+          "columns": [
+            {
+              "expression": "business_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "measured_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "measurement_sets_business_id_businesses_id_fk": {
+          "name": "measurement_sets_business_id_businesses_id_fk",
+          "tableFrom": "measurement_sets",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "business_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "measurement_sets_created_by_users_id_fk": {
+          "name": "measurement_sets_created_by_users_id_fk",
+          "tableFrom": "measurement_sets",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "measurement_sets_business_customer_fk": {
+          "name": "measurement_sets_business_customer_fk",
+          "tableFrom": "measurement_sets",
+          "tableTo": "customers",
+          "columnsFrom": [
+            "business_id",
+            "customer_id"
+          ],
+          "columnsTo": [
+            "business_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "measurement_sets_current_tenant": {
+          "name": "measurement_sets_current_tenant",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"measurement_sets\".\"business_id\"::text = nullif(current_setting('app.current_business_id', true), '')",
+          "withCheck": "\"measurement_sets\".\"business_id\"::text = nullif(current_setting('app.current_business_id', true), '')"
+        }
+      },
+      "checkConstraints": {
+        "measurement_sets_bust_positive_check": {
+          "name": "measurement_sets_bust_positive_check",
+          "value": "\"measurement_sets\".\"bust\" is null or \"measurement_sets\".\"bust\" > 0"
+        },
+        "measurement_sets_waist_positive_check": {
+          "name": "measurement_sets_waist_positive_check",
+          "value": "\"measurement_sets\".\"waist\" is null or \"measurement_sets\".\"waist\" > 0"
+        },
+        "measurement_sets_hips_positive_check": {
+          "name": "measurement_sets_hips_positive_check",
+          "value": "\"measurement_sets\".\"hips\" is null or \"measurement_sets\".\"hips\" > 0"
+        },
+        "measurement_sets_shoulder_width_positive_check": {
+          "name": "measurement_sets_shoulder_width_positive_check",
+          "value": "\"measurement_sets\".\"shoulder_width\" is null or \"measurement_sets\".\"shoulder_width\" > 0"
+        },
+        "measurement_sets_shoulder_to_waist_positive_check": {
+          "name": "measurement_sets_shoulder_to_waist_positive_check",
+          "value": "\"measurement_sets\".\"shoulder_to_waist\" is null or \"measurement_sets\".\"shoulder_to_waist\" > 0"
+        },
+        "measurement_sets_sleeve_length_positive_check": {
+          "name": "measurement_sets_sleeve_length_positive_check",
+          "value": "\"measurement_sets\".\"sleeve_length\" is null or \"measurement_sets\".\"sleeve_length\" > 0"
+        },
+        "measurement_sets_armhole_positive_check": {
+          "name": "measurement_sets_armhole_positive_check",
+          "value": "\"measurement_sets\".\"armhole\" is null or \"measurement_sets\".\"armhole\" > 0"
+        },
+        "measurement_sets_dress_length_positive_check": {
+          "name": "measurement_sets_dress_length_positive_check",
+          "value": "\"measurement_sets\".\"desired_dress_length\" is null or \"measurement_sets\".\"desired_dress_length\" > 0"
+        },
+        "measurement_sets_custom_array_check": {
+          "name": "measurement_sets_custom_array_check",
+          "value": "jsonb_typeof(\"measurement_sets\".\"custom_measurements\") = 'array' and jsonb_array_length(\"measurement_sets\".\"custom_measurements\") <= 30"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "users_self_select": {
+          "name": "users_self_select",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "public"
+          ],
+          "using": "\"users\".\"id\"::text = nullif(current_setting('app.current_user_id', true), '')"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    }
+  },
+  "enums": {
+    "public.customer_event_type": {
+      "name": "customer_event_type",
+      "schema": "public",
+      "values": [
+        "created",
+        "updated",
+        "archived",
+        "restored"
+      ]
+    },
+    "public.customer_preferred_contact": {
+      "name": "customer_preferred_contact",
+      "schema": "public",
+      "values": [
+        "phone",
+        "email",
+        "whatsapp",
+        "in_person",
+        "other"
+      ]
+    },
+    "public.measurement_unit": {
+      "name": "measurement_unit",
+      "schema": "public",
+      "values": [
+        "cm",
+        "in"
+      ]
+    },
+    "public.membership_role": {
+      "name": "membership_role",
+      "schema": "public",
+      "values": [
+        "owner",
+        "staff"
+      ]
+    },
+    "public.membership_status": {
+      "name": "membership_status",
+      "schema": "public",
+      "values": [
+        "active",
+        "suspended",
+        "revoked"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
