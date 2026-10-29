@@ -47,6 +47,26 @@ const isValidSupabaseUrl = (value: string): boolean => {
   }
 };
 
+const isValidObjectStorageUrl = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    return (
+      ['http:', 'https:'].includes(url.protocol) &&
+      url.username.length === 0 &&
+      url.password.length === 0
+    );
+  } catch {
+    return false;
+  }
+};
+
+const objectStorageKeys = [
+  'OBJECT_STORAGE_ENDPOINT',
+  'OBJECT_STORAGE_BUCKET',
+  'OBJECT_STORAGE_ACCESS_KEY_ID',
+  'OBJECT_STORAGE_SECRET_ACCESS_KEY',
+] as const;
+
 export const environmentValidationSchema = Joi.object({
   NODE_ENV: Joi.string()
     .valid('development', 'test', 'production')
@@ -64,6 +84,17 @@ export const environmentValidationSchema = Joi.object({
     isValidSupabaseUrl(value) ? value : helpers.error('string.uri'),
   ),
   SUPABASE_PUBLISHABLE_KEY: Joi.string().min(1),
+  OBJECT_STORAGE_ENDPOINT: Joi.string().custom((value: string, helpers) =>
+    isValidObjectStorageUrl(value) ? value : helpers.error('string.uri'),
+  ),
+  OBJECT_STORAGE_PUBLIC_ENDPOINT: Joi.string().custom(
+    (value: string, helpers) =>
+      isValidObjectStorageUrl(value) ? value : helpers.error('string.uri'),
+  ),
+  OBJECT_STORAGE_BUCKET: Joi.string().min(3).max(63),
+  OBJECT_STORAGE_ACCESS_KEY_ID: Joi.string().min(1),
+  OBJECT_STORAGE_SECRET_ACCESS_KEY: Joi.string().min(1),
+  OBJECT_STORAGE_REGION: Joi.string().min(1).default('us-east-1'),
   DATABASE_SSL: Joi.boolean().default(false),
   DATABASE_POOL_MAX: Joi.number().integer().min(1).max(50).default(10),
   DATABASE_CONNECTION_TIMEOUT_MS: Joi.number()
@@ -121,6 +152,38 @@ export function validateEnvironment(
     !config.SUPABASE_URL.startsWith('https://')
   ) {
     throw new Error('SUPABASE_URL must use HTTPS in production.');
+  }
+  const configuredStorageKeys = objectStorageKeys.filter(
+    (key) => config[key] !== undefined,
+  );
+  if (
+    configuredStorageKeys.length > 0 &&
+    configuredStorageKeys.length !== objectStorageKeys.length
+  ) {
+    throw new Error(
+      'Object storage endpoint, bucket, access key, and secret key must be configured together.',
+    );
+  }
+  if (
+    config.OBJECT_STORAGE_PUBLIC_ENDPOINT !== undefined &&
+    configuredStorageKeys.length !== objectStorageKeys.length
+  ) {
+    throw new Error(
+      'A public object storage endpoint requires complete object storage configuration.',
+    );
+  }
+  if (
+    nodeEnvironment === 'production' &&
+    configuredStorageKeys.length !== objectStorageKeys.length
+  ) {
+    throw new Error('Object storage must be configured in production.');
+  }
+  if (
+    nodeEnvironment === 'production' &&
+    typeof config.OBJECT_STORAGE_ENDPOINT === 'string' &&
+    !config.OBJECT_STORAGE_ENDPOINT.startsWith('https://')
+  ) {
+    throw new Error('Object storage must use HTTPS in production.');
   }
 
   const { error, value } = environmentValidationSchema.validate(config, {

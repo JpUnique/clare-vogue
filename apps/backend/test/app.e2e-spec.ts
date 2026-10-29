@@ -99,6 +99,38 @@ describe('Backend API (e2e)', () => {
       .expect(401);
   });
 
+  it('requires authentication on private media and consent routes', async () => {
+    await request(app.getHttpServer())
+      .get(
+        '/api/v1/garments/7c61db40-cd7c-4c0c-86c1-5a0fe7e94fa5/media',
+      )
+      .expect(401);
+    await request(app.getHttpServer())
+      .post(
+        '/api/v1/garments/7c61db40-cd7c-4c0c-86c1-5a0fe7e94fa5/media/upload-url',
+      )
+      .send({
+        filename: 'dress.png',
+        contentType: 'image/png',
+        fileSizeBytes: 100,
+      })
+      .expect(401);
+    await request(app.getHttpServer())
+      .get(
+        '/api/v1/media/7c61db40-cd7c-4c0c-86c1-5a0fe7e94fa5/download-url',
+      )
+      .expect(401);
+    await request(app.getHttpServer())
+      .post(
+        '/api/v1/media/7c61db40-cd7c-4c0c-86c1-5a0fe7e94fa5/portfolio-consent',
+      )
+      .send({
+        consentedAt: '2026-10-29T12:00:00Z',
+        method: 'written',
+      })
+      .expect(401);
+  });
+
   it('returns a consistent error response with a request ID', () => {
     return request(app.getHttpServer())
       .get('/api/v1/does-not-exist')

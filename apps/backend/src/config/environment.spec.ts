@@ -71,6 +71,10 @@ describe('environmentValidationSchema', () => {
       DATABASE_SSL: 'true',
       SUPABASE_URL: 'https://project.supabase.co',
       SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
+      OBJECT_STORAGE_ENDPOINT: 'https://objects.example',
+      OBJECT_STORAGE_BUCKET: 'clare-vogue-media',
+      OBJECT_STORAGE_ACCESS_KEY_ID: 'access-key',
+      OBJECT_STORAGE_SECRET_ACCESS_KEY: 'secret-key',
     });
 
     expect(value.PORT).toBe(3000);
@@ -121,6 +125,29 @@ describe('environmentValidationSchema', () => {
       }),
     ).toThrow(
       'SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY must be configured together.',
+    );
+  });
+
+  it('requires complete private object storage configuration in production', () => {
+    const config = {
+      NODE_ENV: 'production',
+      CORS_ORIGINS: 'https://clare-vogue.example',
+      DATABASE_URL: 'postgresql://db.example/clare_vogue',
+      DATABASE_SSL: 'true',
+      SUPABASE_URL: 'https://project.supabase.co',
+      SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
+    };
+
+    expect(() => validateEnvironment(config)).toThrow(
+      'Object storage must be configured in production.',
+    );
+    expect(() =>
+      validateEnvironment({
+        ...config,
+        OBJECT_STORAGE_ENDPOINT: 'https://objects.example',
+      }),
+    ).toThrow(
+      'Object storage endpoint, bucket, access key, and secret key must be configured together.',
     );
   });
 });

@@ -71,6 +71,13 @@
       "when": 1793143352983,
       "tag": "0009_happy_barracuda",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793305528968,
+      "tag": "0010_aromatic_shinko_yamashiro",
+      "breakpoints": true
     }
   ]
 }
