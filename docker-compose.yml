@@ -1,0 +1,134 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: clare_vogue
+      POSTGRES_USER: clare_vogue_migration
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clare_vogue_local_admin}
+      POSTGRES_RUNTIME_PASSWORD: ${POSTGRES_RUNTIME_PASSWORD:-clare_vogue_local_runtime}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./apps/backend/docker/init/01-runtime-role.sh:/docker-entrypoint-initdb.d/01-runtime-role.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clare_vogue_migration -d clare_vogue"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  storage:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-clare-vogue-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-clare-vogue-minio-local}
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - minio-data:/data
+
+  storage-init:
+    image: minio/minio:latest
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        set -eu;
+        until mc alias set local http://storage:9000 "$$MINIO_ROOT_USER"
+        "$$MINIO_ROOT_PASSWORD" && mc ready local; do sleep 2; done;
+        mc mb --ignore-existing local/clare-vogue-private;
+        mc anonymous set none local/clare-vogue-private;
+        if ! mc admin policy info local clare-vogue-media-policy >/dev/null 2>&1; then
+        mc admin policy create local clare-vogue-media-policy /etc/minio/media-policy.json; fi;
+        if ! mc admin user info local "$$MINIO_APP_USER" >/dev/null 2>&1; then
+        mc admin user add local "$$MINIO_APP_USER" "$$MINIO_APP_PASSWORD"; fi;
+        mc admin policy attach local clare-vogue-media-policy
+        --user "$$MINIO_APP_USER"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-clare-vogue-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-clare-vogue-minio-local}
+      MINIO_APP_USER: ${MINIO_APP_USER:-clare-vogue-app}
+      MINIO_APP_PASSWORD: ${MINIO_APP_PASSWORD:-clare-vogue-app-local}
+    volumes:
+      - ./apps/backend/docker/minio/media-policy.json:/etc/minio/media-policy.json:ro
+    depends_on:
+      - storage
+    restart: "no"
+
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    command:
+      - /app/node_modules/.bin/drizzle-kit
+      - migrate
+      - --config=drizzle.config.ts
+    working_dir: /app/apps/backend
+    environment:
+      MIGRATION_DATABASE_URL: postgresql://clare_vogue_migration:${POSTGRES_PASSWORD:-clare_vogue_local_admin}@db:5432/clare_vogue
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      CORS_ORIGINS: http://localhost:3001
+      DATABASE_URL: postgresql://clare_vogue_runtime:${POSTGRES_RUNTIME_PASSWORD:-clare_vogue_local_runtime}@db:5432/clare_vogue
+      DATABASE_SSL: "false"
+      OBJECT_STORAGE_ENDPOINT: http://storage:9000
+      OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:9000
+      OBJECT_STORAGE_BUCKET: clare-vogue-private
+      OBJECT_STORAGE_ACCESS_KEY_ID: ${MINIO_APP_USER:-clare-vogue-app}
+      OBJECT_STORAGE_SECRET_ACCESS_KEY: ${MINIO_APP_PASSWORD:-clare-vogue-app-local}
+      OBJECT_STORAGE_REGION: us-east-1
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      storage-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/v1/health/live').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  postgres-data:
+  minio-data:

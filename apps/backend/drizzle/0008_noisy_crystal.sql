@@ -32,6 +32,8 @@ CREATE TABLE "cancellation_settlements" (
 );
 --> statement-breakpoint
 ALTER TABLE "cancellation_settlements" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+CREATE UNIQUE INDEX "cancellation_settlements_business_garment_unique" ON "cancellation_settlements" USING btree ("business_id","garment_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "cancellation_settlements_business_garment_id_unique" ON "cancellation_settlements" USING btree ("business_id","garment_id","id");--> statement-breakpoint
 ALTER TABLE "cancellation_refunds" ADD CONSTRAINT "cancellation_refunds_business_id_businesses_id_fk" FOREIGN KEY ("business_id") REFERENCES "public"."businesses"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "cancellation_refunds" ADD CONSTRAINT "cancellation_refunds_actor_id_users_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "cancellation_refunds" ADD CONSTRAINT "cancellation_refunds_settlement_fk" FOREIGN KEY ("business_id","garment_id","settlement_id") REFERENCES "public"."cancellation_settlements"("business_id","garment_id","id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -39,8 +41,6 @@ ALTER TABLE "cancellation_settlements" ADD CONSTRAINT "cancellation_settlements_
 ALTER TABLE "cancellation_settlements" ADD CONSTRAINT "cancellation_settlements_actor_id_users_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "cancellation_settlements" ADD CONSTRAINT "cancellation_settlements_business_garment_fk" FOREIGN KEY ("business_id","garment_id") REFERENCES "public"."garments"("business_id","id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "cancellation_refunds_business_garment_refunded_idx" ON "cancellation_refunds" USING btree ("business_id","garment_id","refunded_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "cancellation_settlements_business_garment_unique" ON "cancellation_settlements" USING btree ("business_id","garment_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "cancellation_settlements_business_garment_id_unique" ON "cancellation_settlements" USING btree ("business_id","garment_id","id");--> statement-breakpoint
 CREATE POLICY "cancellation_refunds_current_tenant" ON "cancellation_refunds" AS PERMISSIVE FOR ALL TO public USING ("cancellation_refunds"."business_id"::text = nullif(current_setting('app.current_business_id', true), '')) WITH CHECK ("cancellation_refunds"."business_id"::text = nullif(current_setting('app.current_business_id', true), ''));--> statement-breakpoint
 CREATE POLICY "cancellation_settlements_current_tenant" ON "cancellation_settlements" AS PERMISSIVE FOR ALL TO public USING ("cancellation_settlements"."business_id"::text = nullif(current_setting('app.current_business_id', true), '')) WITH CHECK ("cancellation_settlements"."business_id"::text = nullif(current_setting('app.current_business_id', true), ''));
 --> statement-breakpoint

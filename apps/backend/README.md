@@ -126,6 +126,27 @@ least-privilege role.
 Use the workspace scripts for development and checks. Database commands are
 available as `db:generate`, `db:migrate`, and `db:check` from this workspace.
 
+### Private garment media
+
+Media is stored in a private S3-compatible bucket; PostgreSQL stores metadata
+and consent history only. Configure `OBJECT_STORAGE_ENDPOINT`,
+`OBJECT_STORAGE_BUCKET`, `OBJECT_STORAGE_ACCESS_KEY_ID`, and
+`OBJECT_STORAGE_SECRET_ACCESS_KEY` together. Set
+`OBJECT_STORAGE_PUBLIC_ENDPOINT` when clients need presigned URLs using a
+different endpoint than the backend, and optionally set `OBJECT_STORAGE_REGION`
+(defaults to `us-east-1`). Production requires HTTPS and complete storage
+configuration. Never expose storage credentials to the frontend.
+
+The authenticated media API can request a five-minute upload URL for a garment,
+verify upload length and file signature before making it available, list
+available media, create a five-minute private download URL, and delete an
+object while retaining its metadata. Image files are limited to 20 MB
+(JPEG/PNG/WebP); video files are limited to 200 MB (MP4/MOV). Portfolio consent
+is recorded as append-only, per-media grant/withdrawal events. Uploads and
+private access do not grant portfolio permission. Incomplete uploads remain
+private and require later cleanup; public portfolio publishing and customer
+status links are not exposed by this API.
+
 ## Project setup
 
 ```bash

@@ -1,0 +1,16 @@
+.git
+.gitignore
+.dockerignore
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+**/dist
+coverage
+**/coverage
+.env
+.env.*
+!.env.example
+**/tsconfig.tsbuildinfo
+npm-debug.log*

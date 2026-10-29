@@ -99,6 +99,20 @@ export const refundMethod = pgEnum('refund_method', [
   'mobile_money',
   'other',
 ]);
+export const mediaUploadStatus = pgEnum('media_upload_status', [
+  'pending',
+  'available',
+  'deleted',
+]);
+export const portfolioConsentAction = pgEnum('portfolio_consent_action', [
+  'granted',
+  'withdrawn',
+]);
+export const portfolioConsentMethod = pgEnum('portfolio_consent_method', [
+  'verbal',
+  'written',
+  'electronic',
+]);
 
 export interface CustomMeasurementValue {
   name: string;
@@ -472,8 +486,8 @@ export const garments = pgTable(
       table.dueDate,
     ),
     foreignKey({
-      columns: [table.businessId, table.orderId, table.customerId],
-      foreignColumns: [orders.businessId, orders.id, orders.customerId],
+      columns: [table.businessId, table.customerId, table.orderId],
+      foreignColumns: [orders.businessId, orders.customerId, orders.id],
       name: 'garments_business_order_customer_fk',
     }).onDelete('restrict'),
     foreignKey({
@@ -1047,6 +1061,111 @@ export const deliveryEvents = pgTable(
       )`,
     ),
     pgPolicy('delivery_events_current_tenant', {
+      for: 'all',
+      using: sql`${table.businessId}::text = ${currentBusinessId}`,
+      withCheck: sql`${table.businessId}::text = ${currentBusinessId}`,
+    }),
+  ],
+).enableRLS();
+
+export const mediaObjects = pgTable(
+  'media_objects',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    businessId: uuid('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'restrict' }),
+    garmentId: uuid('garment_id').notNull(),
+    objectKey: text('object_key').notNull(),
+    originalFilename: varchar('original_filename', { length: 255 }).notNull(),
+    contentType: varchar('content_type', { length: 100 }).notNull(),
+    fileSizeBytes: numeric('file_size_bytes', {
+      precision: 12,
+      scale: 0,
+    }).notNull(),
+    status: mediaUploadStatus('status').notNull().default('pending'),
+    uploadedBy: uuid('uploaded_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    uploadExpiresAt: timestamp('upload_expires_at', { withTimezone: true })
+      .notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex('media_objects_business_id_id_unique').on(
+      table.businessId,
+      table.id,
+    ),
+    uniqueIndex('media_objects_object_key_unique').on(table.objectKey),
+    index('media_objects_garment_created_idx').on(
+      table.businessId,
+      table.garmentId,
+      table.createdAt,
+    ),
+    foreignKey({
+      columns: [table.businessId, table.garmentId],
+      foreignColumns: [garments.businessId, garments.id],
+      name: 'media_objects_business_garment_fk',
+    }).onDelete('restrict'),
+    check(
+      'media_objects_file_size_positive_check',
+      sql`${table.fileSizeBytes} > 0`,
+    ),
+    check(
+      'media_objects_completion_state_check',
+      sql`(${table.status} = 'available' and ${table.completedAt} is not null) or (${table.status} <> 'available' and ${table.completedAt} is null)`,
+    ),
+    pgPolicy('media_objects_current_tenant', {
+      for: 'all',
+      using: sql`${table.businessId}::text = ${currentBusinessId}`,
+      withCheck: sql`${table.businessId}::text = ${currentBusinessId}`,
+    }),
+  ],
+).enableRLS();
+
+export const portfolioConsentEvents = pgTable(
+  'portfolio_consent_events',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    businessId: uuid('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'restrict' }),
+    mediaId: uuid('media_id').notNull(),
+    action: portfolioConsentAction('action').notNull(),
+    method: portfolioConsentMethod('method'),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+    note: text('note'),
+    actorId: uuid('actor_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('portfolio_consent_events_business_media_id_unique').on(
+      table.businessId,
+      table.mediaId,
+      table.id,
+    ),
+    index('portfolio_consent_events_media_created_idx').on(
+      table.businessId,
+      table.mediaId,
+      table.createdAt,
+    ),
+    foreignKey({
+      columns: [table.businessId, table.mediaId],
+      foreignColumns: [mediaObjects.businessId, mediaObjects.id],
+      name: 'portfolio_consent_events_media_fk',
+    }).onDelete('restrict'),
+    check(
+      'portfolio_consent_events_payload_check',
+      sql`(${table.action} = 'granted' and ${table.method} is not null) or (${table.action} = 'withdrawn' and ${table.method} is null)`,
+    ),
+    pgPolicy('portfolio_consent_events_current_tenant', {
       for: 'all',
       using: sql`${table.businessId}::text = ${currentBusinessId}`,
       withCheck: sql`${table.businessId}::text = ${currentBusinessId}`,
