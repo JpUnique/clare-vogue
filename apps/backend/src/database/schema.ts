@@ -7,6 +7,7 @@ import {
   numeric,
   foreignKey,
   index,
+  integer,
   jsonb,
   text,
   timestamp,
@@ -112,6 +113,24 @@ export const portfolioConsentMethod = pgEnum('portfolio_consent_method', [
   'verbal',
   'written',
   'electronic',
+]);
+export const purchaseItemStatus = pgEnum('purchase_item_status', [
+  'to_buy',
+  'ordered',
+  'received',
+]);
+export const atelierAppointmentType = pgEnum('atelier_appointment_type', [
+  'consultation',
+  'first_fitting',
+  'progress_fitting',
+  'final_fitting',
+  'pickup',
+]);
+export const atelierAppointmentStatus = pgEnum('atelier_appointment_status', [
+  'needs_confirmation',
+  'confirmed',
+  'completed',
+  'cancelled',
 ]);
 
 export interface CustomMeasurementValue {
@@ -1137,6 +1156,11 @@ export const mediaObjects = pgTable(
       table.businessId,
       table.id,
     ),
+    uniqueIndex('media_objects_business_garment_id_unique').on(
+      table.businessId,
+      table.garmentId,
+      table.id,
+    ),
     uniqueIndex('media_objects_object_key_unique').on(table.objectKey),
     index('media_objects_garment_created_idx').on(
       table.businessId,
@@ -1157,6 +1181,204 @@ export const mediaObjects = pgTable(
       sql`(${table.status} = 'available' and ${table.completedAt} is not null) or (${table.status} <> 'available' and ${table.completedAt} is null)`,
     ),
     pgPolicy('media_objects_current_tenant', {
+      for: 'all',
+      using: sql`${table.businessId}::text = ${currentBusinessId}`,
+      withCheck: sql`${table.businessId}::text = ${currentBusinessId}`,
+    }),
+  ],
+).enableRLS();
+
+export const purchaseItems = pgTable(
+  'purchase_items',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    businessId: uuid('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'restrict' }),
+    orderId: uuid('order_id'),
+    name: varchar('name', { length: 200 }).notNull(),
+    category: varchar('category', { length: 80 }).notNull(),
+    quantity: numeric('quantity', { precision: 10, scale: 2 }).notNull(),
+    unit: varchar('unit', { length: 40 }).notNull(),
+    unitPrice: numeric('unit_price', { precision: 12, scale: 2 }).notNull(),
+    supplier: varchar('supplier', { length: 200 }),
+    status: purchaseItemStatus('status').notNull().default('to_buy'),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('purchase_items_business_id_id_unique').on(
+      table.businessId,
+      table.id,
+    ),
+    index('purchase_items_business_status_updated_idx').on(
+      table.businessId,
+      table.status,
+      table.updatedAt,
+    ),
+    foreignKey({
+      columns: [table.businessId, table.orderId],
+      foreignColumns: [orders.businessId, orders.id],
+      name: 'purchase_items_business_order_fk',
+    }).onDelete('restrict'),
+    check(
+      'purchase_items_name_nonempty_check',
+      sql`length(btrim(${table.name})) > 0`,
+    ),
+    check(
+      'purchase_items_category_nonempty_check',
+      sql`length(btrim(${table.category})) > 0`,
+    ),
+    check(
+      'purchase_items_unit_nonempty_check',
+      sql`length(btrim(${table.unit})) > 0`,
+    ),
+    check('purchase_items_quantity_positive_check', sql`${table.quantity} > 0`),
+    check(
+      'purchase_items_unit_price_nonnegative_check',
+      sql`${table.unitPrice} >= 0`,
+    ),
+    pgPolicy('purchase_items_current_tenant', {
+      for: 'all',
+      using: sql`${table.businessId}::text = ${currentBusinessId}`,
+      withCheck: sql`${table.businessId}::text = ${currentBusinessId}`,
+    }),
+  ],
+).enableRLS();
+
+export const atelierAppointments = pgTable(
+  'atelier_appointments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    businessId: uuid('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'restrict' }),
+    customerId: uuid('customer_id').notNull(),
+    orderId: uuid('order_id'),
+    garmentId: uuid('garment_id'),
+    type: atelierAppointmentType('type').notNull(),
+    scheduledAt: timestamp('scheduled_at', { withTimezone: true }).notNull(),
+    status: atelierAppointmentStatus('status')
+      .notNull()
+      .default('needs_confirmation'),
+    notes: text('notes'),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('atelier_appointments_business_id_id_unique').on(
+      table.businessId,
+      table.id,
+    ),
+    index('atelier_appointments_business_scheduled_idx').on(
+      table.businessId,
+      table.scheduledAt,
+      table.id,
+    ),
+    foreignKey({
+      columns: [table.businessId, table.customerId],
+      foreignColumns: [customers.businessId, customers.id],
+      name: 'atelier_appointments_business_customer_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.businessId, table.customerId, table.orderId],
+      foreignColumns: [orders.businessId, orders.customerId, orders.id],
+      name: 'atelier_appointments_business_order_customer_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.businessId, table.orderId, table.garmentId],
+      foreignColumns: [garments.businessId, garments.orderId, garments.id],
+      name: 'atelier_appointments_business_garment_fk',
+    }).onDelete('restrict'),
+    check(
+      'atelier_appointments_garment_order_check',
+      sql`${table.garmentId} is null or ${table.orderId} is not null`,
+    ),
+    check(
+      'atelier_appointments_notes_nonempty_check',
+      sql`${table.notes} is null or length(btrim(${table.notes})) > 0`,
+    ),
+    pgPolicy('atelier_appointments_current_tenant', {
+      for: 'all',
+      using: sql`${table.businessId}::text = ${currentBusinessId}`,
+      withCheck: sql`${table.businessId}::text = ${currentBusinessId}`,
+    }),
+  ],
+).enableRLS();
+
+export const clientStories = pgTable(
+  'client_stories',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    businessId: uuid('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'restrict' }),
+    customerId: uuid('customer_id').notNull(),
+    orderId: uuid('order_id').notNull(),
+    garmentId: uuid('garment_id').notNull(),
+    mediaId: uuid('media_id').notNull(),
+    rating: integer('rating').notNull(),
+    feedback: text('feedback').notNull(),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('client_stories_business_id_id_unique').on(
+      table.businessId,
+      table.id,
+    ),
+    uniqueIndex('client_stories_media_unique').on(
+      table.businessId,
+      table.mediaId,
+    ),
+    index('client_stories_business_created_idx').on(
+      table.businessId,
+      table.createdAt,
+      table.id,
+    ),
+    foreignKey({
+      columns: [table.businessId, table.customerId, table.orderId],
+      foreignColumns: [orders.businessId, orders.customerId, orders.id],
+      name: 'client_stories_business_order_customer_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.businessId, table.orderId, table.garmentId],
+      foreignColumns: [garments.businessId, garments.orderId, garments.id],
+      name: 'client_stories_business_garment_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.businessId, table.garmentId, table.mediaId],
+      foreignColumns: [
+        mediaObjects.businessId,
+        mediaObjects.garmentId,
+        mediaObjects.id,
+      ],
+      name: 'client_stories_business_media_fk',
+    }).onDelete('restrict'),
+    check('client_stories_rating_check', sql`${table.rating} between 1 and 5`),
+    check(
+      'client_stories_feedback_nonempty_check',
+      sql`length(btrim(${table.feedback})) > 0`,
+    ),
+    pgPolicy('client_stories_current_tenant', {
       for: 'all',
       using: sql`${table.businessId}::text = ${currentBusinessId}`,
       withCheck: sql`${table.businessId}::text = ${currentBusinessId}`,

@@ -27,7 +27,7 @@ erasing history.
 
 - Customer sign-in or a full customer portal.
 - Online card payment processing or storage of card data.
-- Inventory management, supplier purchasing, or accounting integrations.
+- Stock-level inventory management or accounting integrations.
 - Automated design generation or garment pattern tools.
 - Native mobile applications.
 - Multiple currencies or jurisdiction-specific tax/accounting features.
@@ -270,6 +270,24 @@ Priority labels: **MVP** means required for the first usable release;
   orders by practical search criteria.
 - **FR-058 (MVP):** Show garments due within the next 7 days and sort due work
   by soonest due date first.
+
+### 4.9 Atelier operations
+
+- **FR-075 (MVP):** The owner must be able to maintain a shared purchase list
+  for atelier supplies with a description, category, quantity and unit,
+  estimated unit price in NGN, optional supplier, and optional order link.
+  Items must support the statuses to buy, ordered, and received. This is a
+  lightweight purchase list, not stock-level inventory or an accounting ledger.
+- **FR-076 (MVP):** The owner must be able to schedule, search, and update
+  consultations, fittings, and pickups with a customer, date/time, type,
+  optional order link, notes, and confirmation/completion status. A scheduled
+  appointment is distinct from an immutable fitting outcome recorded against a
+  garment.
+- **FR-077 (MVP):** The owner must be able to record a customer satisfaction
+  rating from one to five and the customer's feedback against a garment and
+  its media. These records are private by default. A satisfaction story does
+  not grant portfolio consent; public use continues to require the separate,
+  auditable, item-specific consent workflow.
 
 ## 5. Non-functional requirements
 

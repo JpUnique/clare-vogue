@@ -10,7 +10,11 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import type { AuthenticatedUser } from '../auth/authenticated-user.js';
-import { CreateOrderDto, ListOrdersDto } from './order.dto.js';
+import {
+  CreateGarmentDto,
+  CreateOrderDto,
+  ListOrdersDto,
+} from './order.dto.js';
 import { OrderService } from './order.service.js';
 
 @ApiTags('orders')
@@ -26,6 +30,16 @@ export class OrderController {
     @Body() input: CreateOrderDto,
   ) {
     return this.orders.create(user, input);
+  }
+
+  @Post('orders/:orderId/garments')
+  @ApiOperation({ summary: 'Add a garment to an existing order' })
+  addGarment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('orderId', new ParseUUIDPipe()) orderId: string,
+    @Body() input: CreateGarmentDto,
+  ) {
+    return this.orders.addGarment(user, orderId, input);
   }
 
   @Get('orders')

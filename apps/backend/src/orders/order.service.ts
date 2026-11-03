@@ -32,6 +32,7 @@ import type {
   CancelGarmentDto,
   CancellationSettlementDto,
   ConfirmGarmentPriceDto,
+  CreateGarmentDto,
   CreateOrderDto,
   FinancialCorrectionDto,
   GarmentStage,
@@ -296,6 +297,103 @@ export class OrderService {
           ...order,
           garments: garmentsWithFinancials,
           summary: summarizeOrder(orderGarments),
+        };
+      },
+    );
+  }
+
+  async addGarment(
+    user: AuthenticatedUser,
+    orderId: string,
+    input: CreateGarmentDto,
+  ) {
+    const description = input.description.trim();
+    if (!description) {
+      throw new BadRequestException('Garment description cannot be empty.');
+    }
+    if (input.agreedPrice !== undefined) validateMoney(input.agreedPrice);
+    const dueDate = input.dueDate
+      ? parseDateWithTimezone(input.dueDate, 'Garment due date')
+      : null;
+
+    return this.database.withAuthorizedBusinessTransaction(
+      user.id,
+      async (transaction, businessId) => {
+        const order = await this.requireOrder(transaction, orderId, true);
+        const [customer] = await transaction
+          .select({ id: customers.id, archivedAt: customers.archivedAt })
+          .from(customers)
+          .where(eq(customers.id, order.customerId))
+          .limit(1);
+        if (!customer) throw new NotFoundException('Customer not found.');
+        if (customer.archivedAt) {
+          throw new ConflictException(
+            'Restore the archived customer before adding a garment.',
+          );
+        }
+
+        if (input.measurementSetId) {
+          const [measurementSet] = await transaction
+            .select({ id: measurementSets.id })
+            .from(measurementSets)
+            .where(
+              and(
+                eq(measurementSets.id, input.measurementSetId),
+                eq(measurementSets.customerId, order.customerId),
+              ),
+            )
+            .limit(1);
+          if (!measurementSet) {
+            throw new BadRequestException(
+              'The selected measurement set must belong to this order customer.',
+            );
+          }
+        }
+
+        const nextAction =
+          normalizeText(input.nextAction) ?? 'Confirm design and measurements';
+        const [garment] = await transaction
+          .insert(garments)
+          .values({
+            id: randomUUID(),
+            businessId,
+            orderId: order.id,
+            customerId: order.customerId,
+            description,
+            instructions: normalizeText(input.instructions),
+            materialSource: input.materialSource ?? 'unknown',
+            materialNotes: normalizeText(input.materialNotes),
+            agreedPrice: input.agreedPrice ?? null,
+            dueDate,
+            measurementSetId: input.measurementSetId ?? null,
+            stage: 'request_confirmed',
+            nextAction,
+          })
+          .returning();
+
+        if (garment.agreedPrice !== null) {
+          await transaction.insert(garmentPriceEvents).values({
+            businessId,
+            garmentId: garment.id,
+            previousPrice: null,
+            newPrice: garment.agreedPrice,
+            reason: 'Agreed price recorded during garment creation.',
+            actorId: user.id,
+          });
+        }
+
+        await transaction.insert(garmentProgressEvents).values({
+          businessId,
+          garmentId: garment.id,
+          actorId: user.id,
+          eventType: 'created',
+          toStage: 'request_confirmed',
+          nextAction: garment.nextAction,
+        });
+
+        return {
+          ...garment,
+          financials: await this.getGarmentFinancials(transaction, garment),
         };
       },
     );
