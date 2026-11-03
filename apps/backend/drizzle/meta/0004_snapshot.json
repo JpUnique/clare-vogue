@@ -1051,13 +1051,13 @@
           "tableTo": "orders",
           "columnsFrom": [
             "business_id",
-            "order_id",
-            "customer_id"
+            "customer_id",
+            "order_id"
           ],
           "columnsTo": [
             "business_id",
-            "id",
-            "customer_id"
+            "customer_id",
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"

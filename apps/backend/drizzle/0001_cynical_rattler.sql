@@ -47,6 +47,7 @@ CREATE TABLE "measurement_sets" (
 );
 --> statement-breakpoint
 ALTER TABLE "measurement_sets" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+CREATE UNIQUE INDEX "customers_business_id_id_unique" ON "customers" USING btree ("business_id","id");--> statement-breakpoint
 ALTER TABLE "customer_events" ADD CONSTRAINT "customer_events_business_id_businesses_id_fk" FOREIGN KEY ("business_id") REFERENCES "public"."businesses"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "customer_events" ADD CONSTRAINT "customer_events_actor_id_users_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "customer_events" ADD CONSTRAINT "customer_events_business_customer_fk" FOREIGN KEY ("business_id","customer_id") REFERENCES "public"."customers"("business_id","id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -56,7 +57,6 @@ ALTER TABLE "measurement_sets" ADD CONSTRAINT "measurement_sets_created_by_users
 ALTER TABLE "measurement_sets" ADD CONSTRAINT "measurement_sets_business_customer_fk" FOREIGN KEY ("business_id","customer_id") REFERENCES "public"."customers"("business_id","id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "customer_events_business_id_id_unique" ON "customer_events" USING btree ("business_id","id");--> statement-breakpoint
 CREATE UNIQUE INDEX "customer_events_business_id_customer_id_id_unique" ON "customer_events" USING btree ("business_id","customer_id","id");--> statement-breakpoint
-CREATE UNIQUE INDEX "customers_business_id_id_unique" ON "customers" USING btree ("business_id","id");--> statement-breakpoint
 CREATE UNIQUE INDEX "measurement_sets_business_id_id_unique" ON "measurement_sets" USING btree ("business_id","id");--> statement-breakpoint
 CREATE UNIQUE INDEX "measurement_sets_business_id_customer_id_id_unique" ON "measurement_sets" USING btree ("business_id","customer_id","id");--> statement-breakpoint
 CREATE INDEX "measurement_sets_customer_measured_at_idx" ON "measurement_sets" USING btree ("business_id","customer_id","measured_at");--> statement-breakpoint

@@ -37,10 +37,16 @@ defaults to `development`. Backend-local `.env` takes precedence over the
 repository-root `.env`.
 
 Authentication uses Supabase Auth. Set `SUPABASE_URL` and
-`SUPABASE_PUBLISHABLE_KEY` together; production requires both and an HTTPS URL.
+`SUPABASE_PUBLISHABLE_KEY` together. Username sign-in and profile registration
+also require `SUPABASE_SECRET_KEY` on the backend; keep this key server-only
+and never pass it to the frontend. Production requires all three values and an
+HTTPS Supabase URL.
 All routes require a verified Supabase access token with AAL2 (authenticator
 MFA via TOTP), except routes explicitly marked public, including health
-endpoints. `SUPABASE_AUTH_TIMEOUT_MS` defaults to `5000`.
+endpoints and the username authentication endpoints. Username/email mappings
+are stored in the private `auth_account_profiles` table and are never returned
+by the username sign-in or password-reset endpoints. `SUPABASE_AUTH_TIMEOUT_MS`
+defaults to `5000`.
 Configure MFA enrollment and recovery in Supabase; email-only recovery must not
 be used to bypass MFA.
 
@@ -93,10 +99,11 @@ not count toward balances, and voided receipts cannot receive new allocations.
 
 ### Initial owner provisioning
 
-Public signup and runtime owner creation are not exposed. After the database
-migrations are applied and the owner's Supabase Auth account is created and
-secured with verified TOTP MFA, an operator provisions the initial business
-once using a dedicated privileged migration connection:
+Public signup creates a Supabase Auth account and a private username profile;
+it does not grant access to a business. After the database migrations are
+applied and the owner's Supabase Auth account is secured with verified TOTP
+MFA, an operator provisions the initial business once using a dedicated
+privileged migration connection:
 
 ```bash
 MIGRATION_DATABASE_URL='postgresql://...' \
@@ -125,6 +132,49 @@ least-privilege role.
 
 Use the workspace scripts for development and checks. Database commands are
 available as `db:generate`, `db:migrate`, and `db:check` from this workspace.
+
+### Private garment media
+
+Media is stored in a private S3-compatible bucket; PostgreSQL stores metadata
+and consent history only. Configure `OBJECT_STORAGE_ENDPOINT`,
+`OBJECT_STORAGE_BUCKET`, `OBJECT_STORAGE_ACCESS_KEY_ID`, and
+`OBJECT_STORAGE_SECRET_ACCESS_KEY` together. Set
+`OBJECT_STORAGE_PUBLIC_ENDPOINT` when clients need presigned URLs using a
+different endpoint than the backend, and optionally set `OBJECT_STORAGE_REGION`
+(defaults to `us-east-1`). Production requires HTTPS and complete storage
+configuration. Never expose storage credentials to the frontend.
+
+The authenticated media API can request a five-minute upload URL for a garment,
+verify upload length and file signature before making it available, list
+available media, create a five-minute private download URL, and delete an
+object while retaining its metadata. Image files are limited to 20 MB
+(JPEG/PNG/WebP); video files are limited to 200 MB (MP4/MOV). Portfolio consent
+is recorded as append-only, per-media grant/withdrawal events. Uploads and
+private access do not grant portfolio permission. Incomplete uploads remain
+private and require later cleanup; public portfolio publishing and customer
+status links are not exposed by this API.
+
+### Media database integration test
+
+The PostgreSQL integration test verifies real tenant row-level security and
+media visibility. It seeds uniquely identified fixtures and removes only those
+fixtures afterward. It refuses to run unless both URLs point to the local
+`clare_vogue_test` database and `DATABASE_URL` uses the restricted
+`clare_vogue_runtime` role.
+
+Run it in an isolated Docker Compose database with:
+
+```bash
+docker compose --profile integration run --build --rm media-database-test
+```
+
+The `integration` profile creates a separate `clare_vogue_test` database,
+applies migrations, and runs the test with the restricted runtime role. Its
+data is stored in the `postgres-test-data` volume, separate from the app
+database volume. To run the test directly on the host instead, configure
+`DATABASE_URL` and `MIGRATION_DATABASE_URL` in the ignored
+`apps/backend/.env` file with local credentials for that dedicated database.
+Never point either URL at a production or shared database.
 
 ## Project setup
 

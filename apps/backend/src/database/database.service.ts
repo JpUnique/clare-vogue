@@ -88,6 +88,41 @@ export class DatabaseService implements OnModuleDestroy {
     }
   }
 
+  async resolveAuthAccountEmail(username: string): Promise<string | null> {
+    if (!this.pool) {
+      throw new ServiceUnavailableException('Database is not configured.');
+    }
+
+    const { rows } = await this.pool.query<{ email: string | null }>(
+      'SELECT public.resolve_auth_account_email($1) AS email',
+      [username],
+    );
+    return rows[0]?.email ?? null;
+  }
+
+  async registerAuthAccountProfile(profile: {
+    userId: string;
+    username: string;
+    email: string;
+    fullName: string;
+    phone: string;
+  }): Promise<void> {
+    if (!this.pool) {
+      throw new ServiceUnavailableException('Database is not configured.');
+    }
+
+    await this.pool.query(
+      `SELECT public.register_auth_account_profile($1, $2, $3, $4, $5)`,
+      [
+        profile.userId,
+        profile.username,
+        profile.email,
+        profile.fullName,
+        profile.phone,
+      ],
+    );
+  }
+
   async withAuthorizedBusinessTransaction<Result>(
     userId: string,
     operation: (

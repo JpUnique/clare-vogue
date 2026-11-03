@@ -71,6 +71,10 @@ CREATE TABLE "orders" (
 );
 --> statement-breakpoint
 ALTER TABLE "orders" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+CREATE UNIQUE INDEX "garments_business_id_id_unique" ON "garments" USING btree ("business_id","id");--> statement-breakpoint
+CREATE UNIQUE INDEX "orders_business_id_id_unique" ON "orders" USING btree ("business_id","id");--> statement-breakpoint
+CREATE UNIQUE INDEX "orders_business_customer_id_id_unique" ON "orders" USING btree ("business_id","customer_id","id");--> statement-breakpoint
+CREATE UNIQUE INDEX "orders_business_reference_unique" ON "orders" USING btree ("business_id","reference");--> statement-breakpoint
 ALTER TABLE "fittings" ADD CONSTRAINT "fittings_business_id_businesses_id_fk" FOREIGN KEY ("business_id") REFERENCES "public"."businesses"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fittings" ADD CONSTRAINT "fittings_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fittings" ADD CONSTRAINT "fittings_business_garment_fk" FOREIGN KEY ("business_id","garment_id") REFERENCES "public"."garments"("business_id","id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -78,18 +82,14 @@ ALTER TABLE "garment_progress_events" ADD CONSTRAINT "garment_progress_events_bu
 ALTER TABLE "garment_progress_events" ADD CONSTRAINT "garment_progress_events_actor_id_users_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "garment_progress_events" ADD CONSTRAINT "garment_progress_business_garment_fk" FOREIGN KEY ("business_id","garment_id") REFERENCES "public"."garments"("business_id","id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "garments" ADD CONSTRAINT "garments_business_id_businesses_id_fk" FOREIGN KEY ("business_id") REFERENCES "public"."businesses"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "garments" ADD CONSTRAINT "garments_business_order_customer_fk" FOREIGN KEY ("business_id","order_id","customer_id") REFERENCES "public"."orders"("business_id","id","customer_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "garments" ADD CONSTRAINT "garments_business_order_customer_fk" FOREIGN KEY ("business_id","customer_id","order_id") REFERENCES "public"."orders"("business_id","customer_id","id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "garments" ADD CONSTRAINT "garments_business_customer_measurement_fk" FOREIGN KEY ("business_id","customer_id","measurement_set_id") REFERENCES "public"."measurement_sets"("business_id","customer_id","id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "orders" ADD CONSTRAINT "orders_business_id_businesses_id_fk" FOREIGN KEY ("business_id") REFERENCES "public"."businesses"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "orders" ADD CONSTRAINT "orders_business_customer_fk" FOREIGN KEY ("business_id","customer_id") REFERENCES "public"."customers"("business_id","id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "fittings_business_garment_completed_idx" ON "fittings" USING btree ("business_id","garment_id","completed_at");--> statement-breakpoint
 CREATE INDEX "garment_progress_business_garment_created_idx" ON "garment_progress_events" USING btree ("business_id","garment_id","created_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "garments_business_id_id_unique" ON "garments" USING btree ("business_id","id");--> statement-breakpoint
 CREATE INDEX "garments_business_order_idx" ON "garments" USING btree ("business_id","order_id","created_at");--> statement-breakpoint
 CREATE INDEX "garments_business_stage_due_idx" ON "garments" USING btree ("business_id","stage","due_date");--> statement-breakpoint
-CREATE UNIQUE INDEX "orders_business_id_id_unique" ON "orders" USING btree ("business_id","id");--> statement-breakpoint
-CREATE UNIQUE INDEX "orders_business_customer_id_id_unique" ON "orders" USING btree ("business_id","customer_id","id");--> statement-breakpoint
-CREATE UNIQUE INDEX "orders_business_reference_unique" ON "orders" USING btree ("business_id","reference");--> statement-breakpoint
 CREATE INDEX "orders_business_date_idx" ON "orders" USING btree ("business_id","order_date","id");--> statement-breakpoint
 CREATE POLICY "fittings_current_tenant" ON "fittings" AS PERMISSIVE FOR ALL TO public USING ("fittings"."business_id"::text = nullif(current_setting('app.current_business_id', true), '')) WITH CHECK ("fittings"."business_id"::text = nullif(current_setting('app.current_business_id', true), ''));--> statement-breakpoint
 CREATE POLICY "garment_progress_current_tenant" ON "garment_progress_events" AS PERMISSIVE FOR ALL TO public USING ("garment_progress_events"."business_id"::text = nullif(current_setting('app.current_business_id', true), '')) WITH CHECK ("garment_progress_events"."business_id"::text = nullif(current_setting('app.current_business_id', true), ''));--> statement-breakpoint

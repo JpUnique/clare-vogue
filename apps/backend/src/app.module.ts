@@ -6,6 +6,7 @@ import { DatabaseModule } from './database/database.module.js';
 import { HealthController } from './health/health.controller.js';
 import { CustomerModule } from './customers/customer.module.js';
 import { OrderModule } from './orders/order.module.js';
+import { MediaModule } from './media/media.module.js';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { OrderModule } from './orders/order.module.js';
     DatabaseModule,
     CustomerModule,
     OrderModule,
+    MediaModule,
   ],
   controllers: [HealthController],
 })
