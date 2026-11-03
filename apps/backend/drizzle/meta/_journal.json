@@ -78,6 +78,13 @@
       "when": 1793305528968,
       "tag": "0010_aromatic_shinko_yamashiro",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793501081424,
+      "tag": "0011_damp_blue_blade",
+      "breakpoints": true
     }
   ]
 }

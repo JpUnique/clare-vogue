@@ -47,7 +47,7 @@ describe('environmentValidationSchema', () => {
         DATABASE_SSL: 'true',
       }),
     ).toThrow(
-      'SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY must be configured in production.',
+      'SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, and SUPABASE_SECRET_KEY must be configured in production.',
     );
 
     expect(() =>
@@ -58,6 +58,7 @@ describe('environmentValidationSchema', () => {
         DATABASE_SSL: 'true',
         SUPABASE_URL: 'http://project.supabase.co',
         SUPABASE_PUBLISHABLE_KEY: 'public-key',
+        SUPABASE_SECRET_KEY: 'secret-key',
       }),
     ).toThrow('SUPABASE_URL must use HTTPS in production.');
   });
@@ -71,6 +72,7 @@ describe('environmentValidationSchema', () => {
       DATABASE_SSL: 'true',
       SUPABASE_URL: 'https://project.supabase.co',
       SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
+      SUPABASE_SECRET_KEY: 'secret-key',
       OBJECT_STORAGE_ENDPOINT: 'https://objects.example',
       OBJECT_STORAGE_BUCKET: 'clare-vogue-media',
       OBJECT_STORAGE_ACCESS_KEY_ID: 'access-key',
@@ -126,6 +128,40 @@ describe('environmentValidationSchema', () => {
     ).toThrow(
       'SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY must be configured together.',
     );
+
+    expect(() =>
+      validateEnvironment({
+        NODE_ENV: 'test',
+        SUPABASE_URL: '',
+        SUPABASE_PUBLISHABLE_KEY: '',
+      }),
+    ).not.toThrow();
+  });
+
+  it('does not accept empty Supabase credentials in production', () => {
+    expect(() =>
+      validateEnvironment({
+        NODE_ENV: 'production',
+        CORS_ORIGINS: 'https://clare-vogue.example',
+        DATABASE_URL: 'postgresql://db.example/clare_vogue',
+        DATABASE_SSL: 'true',
+        SUPABASE_URL: '',
+        SUPABASE_PUBLISHABLE_KEY: '',
+      }),
+    ).toThrow(
+      'SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, and SUPABASE_SECRET_KEY must be configured in production.',
+    );
+  });
+
+  it('requires the Supabase secret key to be paired with public settings', () => {
+    expect(() =>
+      validateEnvironment({
+        NODE_ENV: 'test',
+        SUPABASE_SECRET_KEY: 'secret-key',
+      }),
+    ).toThrow(
+      'SUPABASE_SECRET_KEY requires SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY.',
+    );
   });
 
   it('requires complete private object storage configuration in production', () => {
@@ -136,6 +172,7 @@ describe('environmentValidationSchema', () => {
       DATABASE_SSL: 'true',
       SUPABASE_URL: 'https://project.supabase.co',
       SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
+      SUPABASE_SECRET_KEY: 'secret-key',
     };
 
     expect(() => validateEnvironment(config)).toThrow(

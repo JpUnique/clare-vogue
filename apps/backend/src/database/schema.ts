@@ -135,6 +135,43 @@ export const users = pgTable(
   ],
 ).enableRLS();
 
+export const authAccountProfiles = pgTable(
+  'auth_account_profiles',
+  {
+    userId: uuid('user_id').primaryKey(),
+    username: varchar('username', { length: 32 }).notNull(),
+    email: varchar('email', { length: 320 }).notNull(),
+    fullName: varchar('full_name', { length: 200 }).notNull(),
+    phone: varchar('phone', { length: 40 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('auth_account_profiles_username_unique').on(table.username),
+    check(
+      'auth_account_profiles_username_check',
+      sql`${table.username} ~ '^[a-z0-9][a-z0-9._-]{2,31}$'`,
+    ),
+    check(
+      'auth_account_profiles_email_check',
+      sql`length(btrim(${table.email})) > 0`,
+    ),
+    check(
+      'auth_account_profiles_name_check',
+      sql`length(btrim(${table.fullName})) > 0`,
+    ),
+    check(
+      'auth_account_profiles_phone_check',
+      sql`${table.phone} ~ '^\\+[1-9][0-9]{7,14}$'`,
+    ),
+    pgPolicy('auth_account_profiles_self_select', {
+      for: 'select',
+      using: sql`${table.userId}::text = ${currentUserId}`,
+    }),
+  ],
+).enableRLS();
+
 export const businesses = pgTable(
   'businesses',
   {
@@ -1090,8 +1127,9 @@ export const mediaObjects = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
-    uploadExpiresAt: timestamp('upload_expires_at', { withTimezone: true })
-      .notNull(),
+    uploadExpiresAt: timestamp('upload_expires_at', {
+      withTimezone: true,
+    }).notNull(),
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
   (table) => [

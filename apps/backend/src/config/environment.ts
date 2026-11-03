@@ -80,10 +80,15 @@ export const environmentValidationSchema = Joi.object({
   DATABASE_URL: Joi.string().custom((value: string, helpers) =>
     isValidDatabaseUrl(value) ? value : helpers.error('string.uri'),
   ),
-  SUPABASE_URL: Joi.string().custom((value: string, helpers) =>
-    isValidSupabaseUrl(value) ? value : helpers.error('string.uri'),
-  ),
-  SUPABASE_PUBLISHABLE_KEY: Joi.string().min(1),
+  SUPABASE_URL: Joi.string()
+    .allow('')
+    .custom((value: string, helpers) =>
+      value === '' || isValidSupabaseUrl(value)
+        ? value
+        : helpers.error('string.uri'),
+    ),
+  SUPABASE_PUBLISHABLE_KEY: Joi.string().allow('').min(1),
+  SUPABASE_SECRET_KEY: Joi.string().allow('').min(1),
   OBJECT_STORAGE_ENDPOINT: Joi.string().custom((value: string, helpers) =>
     isValidObjectStorageUrl(value) ? value : helpers.error('string.uri'),
   ),
@@ -97,10 +102,7 @@ export const environmentValidationSchema = Joi.object({
   OBJECT_STORAGE_REGION: Joi.string().min(1).default('us-east-1'),
   DATABASE_SSL: Joi.boolean().default(false),
   DATABASE_POOL_MAX: Joi.number().integer().min(1).max(50).default(10),
-  DATABASE_CONNECTION_TIMEOUT_MS: Joi.number()
-    .integer()
-    .min(100)
-    .default(5000),
+  DATABASE_CONNECTION_TIMEOUT_MS: Joi.number().integer().min(100).default(5000),
   SUPABASE_AUTH_TIMEOUT_MS: Joi.number().integer().min(100).default(5000),
 }).unknown(true);
 
@@ -129,25 +131,36 @@ export function validateEnvironment(
   ) {
     throw new Error('DATABASE_SSL must be enabled in production.');
   }
-  if (
-    (config.SUPABASE_URL === undefined) !==
-    (config.SUPABASE_PUBLISHABLE_KEY === undefined)
-  ) {
+  const hasSupabaseUrl =
+    typeof config.SUPABASE_URL === 'string' &&
+    config.SUPABASE_URL.trim().length > 0;
+  const hasSupabasePublishableKey =
+    typeof config.SUPABASE_PUBLISHABLE_KEY === 'string' &&
+    config.SUPABASE_PUBLISHABLE_KEY.trim().length > 0;
+  const hasSupabaseSecretKey =
+    typeof config.SUPABASE_SECRET_KEY === 'string' &&
+    config.SUPABASE_SECRET_KEY.trim().length > 0;
+  if (hasSupabaseUrl !== hasSupabasePublishableKey) {
     throw new Error(
       'SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY must be configured together.',
     );
   }
-  if (
-    nodeEnvironment === 'production' &&
-    (typeof config.SUPABASE_URL !== 'string' ||
-      typeof config.SUPABASE_PUBLISHABLE_KEY !== 'string')
-  ) {
+  if (hasSupabaseSecretKey && (!hasSupabaseUrl || !hasSupabasePublishableKey)) {
     throw new Error(
-      'SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY must be configured in production.',
+      'SUPABASE_SECRET_KEY requires SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY.',
     );
   }
   if (
     nodeEnvironment === 'production' &&
+    (!hasSupabaseUrl || !hasSupabasePublishableKey || !hasSupabaseSecretKey)
+  ) {
+    throw new Error(
+      'SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, and SUPABASE_SECRET_KEY must be configured in production.',
+    );
+  }
+  if (
+    nodeEnvironment === 'production' &&
+    hasSupabaseUrl &&
     typeof config.SUPABASE_URL === 'string' &&
     !config.SUPABASE_URL.startsWith('https://')
   ) {
