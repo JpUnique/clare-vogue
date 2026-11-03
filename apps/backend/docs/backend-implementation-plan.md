@@ -49,8 +49,23 @@ garment cancellation, repeated fitting records, per-garment delivery events
 and reversals, payment receipts and allocations, and delivery balance
 agreements are implemented. Initial agreed-price confirmation is supported and
 audited. Cancellation settlements, actual refund records, and later reasoned
-price adjustments are implemented. Corrections to receipt/allocation records
-remain pending; migrations are generated but not applied.
+price adjustments are implemented. An authenticated endpoint also adds
+garments to existing orders. Payment records remain append-only; corrections
+use audited allocation reversals and payment voids. Migrations are generated
+but not applied. The authenticated workroom
+now exposes allocation reversal, payment voids, delivery records and
+corrections, price confirmation and adjustments, fitting history, and
+cancellation settlements/refunds. The approved
+workroom UI scope also includes lightweight purchase-list items, scheduled
+appointments, and private garment-linked customer satisfaction stories.
+Tenant-scoped APIs and migration `0012_whole_liz_osborn.sql` now support list,
+create, and status updates for purchase items; list, create, and updates for
+appointments; and list/create for private stories linked to an available
+garment video. These records use forced RLS, tenant-qualified references, and
+least-privilege runtime grants. Scheduled appointments remain distinct from
+fitting outcomes, and recording a story does not grant portfolio consent. The
+migration has not been applied; database-backed workflows remain unverified
+until the migration is applied to a dedicated test database.
 
 ## Backend outcomes
 

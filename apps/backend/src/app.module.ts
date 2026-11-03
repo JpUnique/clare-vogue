@@ -7,6 +7,7 @@ import { HealthController } from './health/health.controller.js';
 import { CustomerModule } from './customers/customer.module.js';
 import { OrderModule } from './orders/order.module.js';
 import { MediaModule } from './media/media.module.js';
+import { WorkroomModule } from './workroom/workroom.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { MediaModule } from './media/media.module.js';
     CustomerModule,
     OrderModule,
     MediaModule,
+    WorkroomModule,
   ],
   controllers: [HealthController],
 })

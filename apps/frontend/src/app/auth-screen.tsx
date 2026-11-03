@@ -135,8 +135,7 @@ export default function AuthScreen({
           backgroundImage:
             "radial-gradient(circle at 1px 1px, rgba(255,255,255,.075) 1px, transparent 0)",
           backgroundSize: "34px 34px",
-          maskImage:
-            "linear-gradient(to bottom, black, transparent 85%)",
+          maskImage: "linear-gradient(to bottom, black, transparent 85%)",
         }}
       />
       <motion.div
@@ -298,7 +297,10 @@ export default function AuthScreen({
                       aria-label="Secure sign in"
                       title="Secure sign in"
                     >
-                      <ShieldCheck className="h-4 w-4" style={{ color: theme.color }} />
+                      <ShieldCheck
+                        className="h-4 w-4"
+                        style={{ color: theme.color }}
+                      />
                     </div>
                   </div>
 
@@ -311,10 +313,22 @@ export default function AuthScreen({
                         Connect your space
                       </h1>
                       <p className="mt-3 text-sm leading-6 text-white/60">
-                        Add your Supabase project URL and publishable key to
-                        the root <code className="text-white/85">.env</code>,
-                        then restart Docker Compose. Use the public
-                        publishable key here, never a service-role key.
+                        The running frontend cannot read your Supabase project
+                        URL and publishable key. For Docker Compose, set
+                        <code className="mx-1 text-white/85">SUPABASE_URL</code>
+                        and
+                        <code className="mx-1 text-white/85">
+                          SUPABASE_PUBLISHABLE_KEY
+                        </code>
+                        in the repository-root
+                        <code className="mx-1 text-white/85">.env</code>
+                        and restart the frontend service. For local development,
+                        set those same values in
+                        <code className="mx-1 text-white/85">
+                          apps/frontend/.env.local
+                        </code>
+                        and restart the dev server. The secret key is backend
+                        only; never use it here.
                       </p>
                     </div>
                   ) : authMode === "checking" ? (

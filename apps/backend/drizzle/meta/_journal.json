@@ -85,6 +85,13 @@
       "when": 1793501081424,
       "tag": "0011_damp_blue_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793732724447,
+      "tag": "0012_whole_liz_osborn",
+      "breakpoints": true
     }
   ]
 }

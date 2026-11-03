@@ -14,6 +14,7 @@ import {
   useState,
 } from "react";
 import AuthScreen from "./auth-screen";
+import LiveWorkroom from "./live-workroom";
 
 type AppConfig = {
   apiBaseUrl: string;
@@ -329,21 +330,6 @@ export default function MediaWorkspace() {
     }
   }, [apiRequest]);
 
-  const loadGarments = useCallback(
-    async (orderId: string) => {
-      setGarments([]);
-      setSelectedGarmentId("");
-      setMedia([]);
-      if (!orderId) return;
-      const rows = await apiRequest<Garment[]>(
-        `/orders/${encodeURIComponent(orderId)}/garments`,
-      );
-      setGarments(rows);
-      if (rows[0]) setSelectedGarmentId(rows[0].id);
-    },
-    [apiRequest],
-  );
-
   const loadMedia = useCallback(
     async (garmentId: string) => {
       setMedia([]);
@@ -372,36 +358,6 @@ export default function MediaWorkspace() {
     },
     [apiRequest],
   );
-
-  useEffect(() => {
-    if (!accessToken || authMode !== "sign-in") {
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      void loadOrders().catch((cause: unknown) =>
-        setError(getErrorMessage(cause)),
-      );
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [accessToken, authMode, loadOrders]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void loadGarments(selectedOrderId).catch((cause: unknown) =>
-        setError(getErrorMessage(cause)),
-      );
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [loadGarments, selectedOrderId]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void loadMedia(selectedGarmentId).catch((cause: unknown) =>
-        setError(getErrorMessage(cause)),
-      );
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [loadMedia, selectedGarmentId]);
 
   async function submitSignIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -920,7 +876,7 @@ export default function MediaWorkspace() {
             </div>
           </header>
 
-          <div className="mx-auto max-w-7xl px-5 py-9 sm:px-8 sm:py-12">
+          <div className="hidden">
             {readyForWorkspace && (
               <div className="mb-10 space-y-8">
                 <motion.section
@@ -1603,6 +1559,7 @@ export default function MediaWorkspace() {
               </section>
             )}
           </div>
+          <LiveWorkroom request={apiRequest} displayName={firstName} />
           <footer className="border-t border-[#f2dce6] bg-white">
             <div className="mx-auto max-w-7xl px-5 py-6 text-xs leading-5 text-[#77776e] sm:px-8">
               Client work stays private. Portfolio use requires separate,

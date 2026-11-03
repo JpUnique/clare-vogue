@@ -232,7 +232,45 @@ Typical attributes:
 - internal notes
 - created by and timestamps
 
-Calendar integration is not assumed for the first release.
+The first release also supports owner-managed appointments for consultations,
+future fittings, and pickups. Scheduled appointments are separate records from
+completed fitting outcomes and do not imply calendar-provider integration.
+
+#### `appointments`
+
+Represents a scheduled customer visit or pickup.
+
+Typical attributes:
+
+- `id`, `business_id`, `customer_id`
+- optional order and garment references
+- appointment type, scheduled timestamp, status, and notes
+- created and updated timestamps
+
+#### `purchase_items`
+
+Represents a lightweight atelier purchase-list entry, not stock inventory.
+
+Typical attributes:
+
+- `id`, `business_id`, optional order reference
+- item description, category, quantity, unit, estimated unit price in NGN
+- optional supplier and status (to buy, ordered, received)
+- created and updated timestamps
+
+#### `client_stories`
+
+Represents private customer satisfaction feedback linked to the garment and
+uploaded media it describes.
+
+Typical attributes:
+
+- `id`, `business_id`, `customer_id`, `order_id`, `garment_id`, `media_id`
+- one-to-five rating, feedback text, and created timestamp
+
+Client stories remain private by default. Portfolio publication is governed
+only by the separate media-consent record and is never implied by saving a
+story.
 
 #### `delivery_events`
 
