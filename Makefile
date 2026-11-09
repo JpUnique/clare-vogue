@@ -51,11 +51,11 @@ docker-build:
 	@echo "Building Docker images with tag $(VERSION)..."
 	docker build -f apps/frontend/Dockerfile \
 		--tag $(FRONTEND_IMAGE) \
-		--cache-from type=registry,ref=$(FRONTEND_IMAGE) \
+		--cache-from type=registry,ref=$(REGISTRY)/clare-vogue-frontend:latest \
 		.
 	docker build -f apps/backend/Dockerfile \
 		--tag $(BACKEND_IMAGE) \
-		--cache-from type=registry,ref=$(BACKEND_IMAGE) \
+		--cache-from type=registry,ref=$(REGISTRY)/clare-vogue-backend:latest \
 		.
 	@echo "✅ Docker images built:"
 	@echo "  Frontend: $(FRONTEND_IMAGE)"
