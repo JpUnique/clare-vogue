@@ -22,7 +22,7 @@ COPY --from=build /app/apps/backend/dist ./dist
 COPY --from=build /app/apps/backend/package.json ./
 COPY --from=build /app/apps/backend/node_modules ./node_modules
 
-USER node
+USER 1000
 
 EXPOSE 3000
 

@@ -18,11 +18,11 @@ ENV PORT=3001
 ENV HOSTNAME=0.0.0.0
 WORKDIR /app
 
-COPY --from=build --chown=node:node /app/apps/frontend/.next/standalone ./
-COPY --from=build --chown=node:node /app/apps/frontend/.next/static ./apps/frontend/.next/static
-COPY --from=build --chown=node:node /app/apps/frontend/public ./apps/frontend/public
+COPY --from=build --chown=1000:1000 /app/apps/frontend/.next/standalone ./
+COPY --from=build --chown=1000:1000 /app/apps/frontend/.next/static ./apps/frontend/.next/static
+COPY --from=build --chown=1000:1000 /app/apps/frontend/public ./apps/frontend/public
 
-USER node
+USER 1000
 
 EXPOSE 3001
 
