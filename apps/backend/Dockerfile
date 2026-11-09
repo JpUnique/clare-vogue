@@ -18,10 +18,14 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 WORKDIR /app
 
+# Copy root dependencies
+COPY --from=build /app/package.json /app/package-lock.json ./
+
+# Copy compiled backend code to working directory
+COPY --from=build /app/apps/backend/dist ./
+
+# Copy all node_modules from monorepo
 COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/apps/backend/dist ./dist
-COPY --from=build /app/apps/backend/package.json ./
-COPY --from=build /app/apps/backend/node_modules ./apps/backend/node_modules
 
 USER 1000
 
