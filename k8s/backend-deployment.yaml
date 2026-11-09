@@ -28,17 +28,23 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        readOnlyRootFilesystem: true
         seccompProfile:
           type: RuntimeDefault
-      
+
       serviceAccountName: clare-vogue-backend
-      
+
       containers:
       - name: backend
         image: ghcr.io/jpunique/clare-vogue-backend:latest
         imagePullPolicy: IfNotPresent
-        
+
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+
         ports:
         - name: http
           containerPort: 3000

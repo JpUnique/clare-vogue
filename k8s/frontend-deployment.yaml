@@ -28,7 +28,6 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        readOnlyRootFilesystem: true
         seccompProfile:
           type: RuntimeDefault
 
@@ -38,6 +37,13 @@ spec:
       - name: frontend
         image: ghcr.io/jpunique/clare-vogue-frontend:latest
         imagePullPolicy: IfNotPresent
+
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
 
         ports:
         - name: http
