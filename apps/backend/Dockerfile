@@ -19,12 +19,8 @@ ENV HOSTNAME=0.0.0.0
 WORKDIR /app
 
 COPY --from=build /app/apps/backend/dist ./dist
-COPY --from=build /app/apps/backend/package.json ./package.json
-COPY --from=build /app/package.json ./package.json
-COPY --from=build /app/package-lock.json ./package-lock.json
-
-# Install only production dependencies
-RUN npm ci --only=production --workspace @clare-vogue/backend
+COPY --from=build /app/apps/backend/package.json ./
+COPY --from=build /app/apps/backend/node_modules ./node_modules
 
 USER node
 
