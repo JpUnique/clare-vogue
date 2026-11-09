@@ -44,10 +44,9 @@ export class HealthService {
   private async checkDatabase(): Promise<DependencyCheck> {
     try {
       const startTime = Date.now();
-      
-      // Test database connection using the database service's pool
-      await this.database.pool.query('SELECT 1');
-      
+
+      await this.database.checkReadiness();
+
       const latency = Date.now() - startTime;
       this.logger.debug(`Database check passed (${latency}ms)`);
 
