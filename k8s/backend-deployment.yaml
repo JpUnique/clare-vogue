@@ -28,7 +28,7 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        fsReadOnlyRootFilesystem: true
+        readOnlyRootFilesystem: true
         seccompProfile:
           type: RuntimeDefault
       
