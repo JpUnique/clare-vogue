@@ -32,6 +32,8 @@ spec:
           type: RuntimeDefault
 
       serviceAccountName: clare-vogue-frontend
+      imagePullSecrets:
+      - name: ghcr-secret
 
       containers:
       - name: frontend
