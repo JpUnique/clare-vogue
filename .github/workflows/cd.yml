@@ -55,6 +55,13 @@ jobs:
       - name: Build Docker images
         run: make docker-build VERSION=${GITHUB_SHA::8}
 
+      - name: Push Docker images to GHCR
+        run: |
+          echo "${{ secrets.GHCR_PULL_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_PULL_USER }}" --password-stdin
+          docker push ghcr.io/jpunique/clare-vogue-backend:${GITHUB_SHA::8}
+          docker push ghcr.io/jpunique/clare-vogue-frontend:${GITHUB_SHA::8}
+          docker logout ghcr.io
+
       - name: Deploy to Kubernetes
         run: make k8s-deploy VERSION=${GITHUB_SHA::8}
         env:
