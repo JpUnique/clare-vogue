@@ -30,8 +30,9 @@ export class HealthService {
   async checkDependenciesStrict(): Promise<Record<string, DependencyCheck>> {
     const checks = await this.checkDependencies();
 
-    // Strict mode: ensure all critical dependencies are ready
-    const criticalDependencies = ['database', 'supabase', 'config'];
+    // Strict mode: ensure critical dependencies (database only) are ready
+    // Supabase is optional for startup
+    const criticalDependencies = ['database'];
     for (const dep of criticalDependencies) {
       if (!checks[dep]?.ready) {
         this.logger.error(`Critical dependency failed: ${dep}`, checks[dep]?.error);

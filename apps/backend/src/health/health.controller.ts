@@ -41,15 +41,16 @@ export class HealthController {
   @Get('startup')
   @Public()
   @ApiOperation({
-    summary: 'Startup probe - comprehensive dependency verification',
+    summary: 'Startup probe - checks critical dependencies (database only)',
   })
   async startup() {
     const checks = await this.health.checkDependenciesStrict();
-    const allReady = Object.values(checks).every((c) => c.ready);
+    // Only check database is ready for startup, others are optional
+    const criticalReady = checks['database']?.ready ?? false;
 
-    if (!allReady) {
+    if (!criticalReady) {
       const failedChecks = Object.entries(checks)
-        .filter(([, c]) => !c.ready)
+        .filter(([name, c]) => name === 'database' && !c.ready)
         .map(([name, c]) => `${name}: ${c.error || 'Unknown error'}`)
         .join('; ');
 
