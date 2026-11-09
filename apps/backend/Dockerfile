@@ -18,9 +18,10 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 WORKDIR /app
 
+COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/backend/dist ./dist
 COPY --from=build /app/apps/backend/package.json ./
-COPY --from=build /app/apps/backend/node_modules ./node_modules
+COPY --from=build /app/apps/backend/node_modules ./apps/backend/node_modules
 
 USER 1000
 
