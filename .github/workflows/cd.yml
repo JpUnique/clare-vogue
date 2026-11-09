@@ -42,15 +42,15 @@ jobs:
 
       - name: Setup environment
         run: |
-          # Load .env file if it exists in the runner's work directory
-          if [ -f "$HOME/secret-backups/.env-latest" ]; then
-            cp "$HOME/secret-backups/.env-latest" .env
-            echo "✅ Loaded environment from backup"
-          elif [ -f .env ]; then
-            echo "✅ Using .env from repository"
-          else
-            echo "⚠️  No .env file found, using defaults"
-          fi
+          cat > .env << EOF
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY=${{ secrets.SUPABASE_SECRET_KEY }}
+          GHCR_PULL_USER=${{ secrets.GHCR_PULL_USER }}
+          GHCR_PULL_TOKEN=${{ secrets.GHCR_PULL_TOKEN }}
+          EOF
+          echo "✅ Environment configured from secrets"
 
       - name: Build Docker images
         run: make docker-build VERSION=${GITHUB_SHA::8}
