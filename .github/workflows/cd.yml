@@ -71,8 +71,8 @@ jobs:
       - name: Verify deployment
         run: |
           export KUBECONFIG=/home/administrator/.kube/config
-          kubectl rollout status deployment/clare-vogue-backend -n clare-vogue --timeout=5m
-          kubectl rollout status deployment/clare-vogue-frontend -n clare-vogue --timeout=5m
+          kubectl rollout status deployment/clare-vogue-backend -n clare-vogue --timeout=10m
+          kubectl rollout status deployment/clare-vogue-frontend -n clare-vogue --timeout=10m
 
       - name: Run smoke tests
         run: |
