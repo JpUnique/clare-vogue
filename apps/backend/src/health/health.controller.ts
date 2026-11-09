@@ -1,25 +1,65 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { DatabaseService } from '../database/database.service.js';
 import { Public } from '../auth/public.decorator.js';
+import { HealthService } from './health.service.js';
 
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(private readonly health: HealthService) {}
 
-  @Get('live')
+  @Get()
   @Public()
-  @ApiOperation({ summary: 'Check whether the API process is running' })
-  live(): { status: 'ok' } {
-    return { status: 'ok' };
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Health check - returns 200 if service is ready',
+  })
+  async healthCheck() {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    };
   }
 
   @Get('ready')
   @Public()
-  @ApiOperation({ summary: 'Check whether the API is ready to accept requests' })
-  async ready(): Promise<{ status: 'ready' }> {
-    await this.database.checkReadiness();
-    return { status: 'ready' };
+  @ApiOperation({
+    summary: 'Readiness probe - checks all dependencies',
+  })
+  async readiness() {
+    const checks = await this.health.checkDependencies();
+    const allReady = Object.values(checks).every((c) => c.ready);
+
+    return {
+      ready: allReady,
+      timestamp: new Date().toISOString(),
+      dependencies: checks,
+    };
+  }
+
+  @Get('startup')
+  @Public()
+  @ApiOperation({
+    summary: 'Startup probe - comprehensive dependency verification',
+  })
+  async startup() {
+    const checks = await this.health.checkDependenciesStrict();
+    const allReady = Object.values(checks).every((c) => c.ready);
+
+    if (!allReady) {
+      const failedChecks = Object.entries(checks)
+        .filter(([, c]) => !c.ready)
+        .map(([name, c]) => `${name}: ${c.error || 'Unknown error'}`)
+        .join('; ');
+
+      throw new Error(`Startup checks failed: ${failedChecks}`);
+    }
+
+    return {
+      ready: true,
+      timestamp: new Date().toISOString(),
+      dependencies: checks,
+    };
   }
 }

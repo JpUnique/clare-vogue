@@ -15,18 +15,19 @@ FROM node:22-bookworm-slim AS runtime
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 WORKDIR /app
 
-COPY --from=build --chown=node:node /app/node_modules ./node_modules
-COPY --from=build --chown=node:node /app/package.json /app/package-lock.json ./
-COPY --from=build --chown=node:node /app/apps/backend/package.json ./apps/backend/package.json
-COPY --from=build --chown=node:node /app/apps/backend/dist ./apps/backend/dist
-COPY --from=build --chown=node:node /app/apps/backend/drizzle ./apps/backend/drizzle
-COPY --from=build --chown=node:node /app/apps/backend/drizzle.config.ts ./apps/backend/drizzle.config.ts
-COPY --from=build --chown=node:node /app/apps/backend/src/database/schema.ts ./apps/backend/src/database/schema.ts
+COPY --from=build /app/apps/backend/dist ./dist
+COPY --from=build /app/apps/backend/package.json ./package.json
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/package-lock.json ./package-lock.json
+
+# Install only production dependencies
+RUN npm ci --only=production --workspace @clare-vogue/backend
 
 USER node
 
 EXPOSE 3000
 
-CMD ["node", "apps/backend/dist/main.js"]
+CMD ["node", "dist/main.js"]

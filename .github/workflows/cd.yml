@@ -1,0 +1,105 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+  workflow_dispatch:
+
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, dms-server]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Check disk space
+        run: |
+          # Check disk space on current working directory
+          FREE_KB=$(df -k . | awk 'NR==2 {print $4}')
+          FREE_GB=$((FREE_KB / 1024 / 1024))
+          MIN_FREE_GB=10
+          if [ "$FREE_GB" -lt "$MIN_FREE_GB" ]; then
+            echo "❌ Insufficient disk space: ${FREE_GB}GB < ${MIN_FREE_GB}GB"
+            df -h
+            exit 1
+          fi
+          echo "✅ Disk space: ${FREE_GB}GB available"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup environment
+        run: |
+          # Load .env file if it exists in the runner's work directory
+          if [ -f "$HOME/secret-backups/.env-latest" ]; then
+            cp "$HOME/secret-backups/.env-latest" .env
+            echo "✅ Loaded environment from backup"
+          elif [ -f .env ]; then
+            echo "✅ Using .env from repository"
+          else
+            echo "⚠️  No .env file found, using defaults"
+          fi
+
+      - name: Build Docker images
+        run: make docker-build VERSION=${GITHUB_SHA::8}
+
+      - name: Deploy to Kubernetes
+        run: make k8s-deploy VERSION=${GITHUB_SHA::8}
+        env:
+          KUBECONFIG: /home/administrator/.kube/config
+
+      - name: Verify deployment
+        run: |
+          export KUBECONFIG=/home/administrator/.kube/config
+          kubectl rollout status deployment/clare-vogue-backend -n clare-vogue --timeout=5m
+          kubectl rollout status deployment/clare-vogue-frontend -n clare-vogue --timeout=5m
+
+      - name: Run smoke tests
+        run: |
+          export KUBECONFIG=/home/administrator/.kube/config
+          sleep 10
+
+          # Get backend pod to test directly
+          BACKEND_POD=$(kubectl get pod -n clare-vogue -l app=clare-vogue-backend -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+
+          if [ -z "$BACKEND_POD" ]; then
+            echo "❌ No backend pod found"
+            exit 1
+          fi
+
+          echo "Testing pod: $BACKEND_POD"
+
+          # Run health check inside the pod
+          kubectl exec -n clare-vogue "$BACKEND_POD" -- curl -f -s http://localhost:3000/api/v1/health || {
+            echo "❌ Backend health check failed"
+            exit 1
+          }
+          echo "✅ Backend health check passed"
+
+      - name: Notify deployment
+        if: success()
+        run: |
+          echo "✅ Deployment successful!"
+          echo "Backend: http://clare-vogue-backend.dms-server"
+          echo "Frontend: http://clare-vogue.dms-server"
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          export KUBECONFIG=/home/administrator/.kube/config
+          echo "Rolling back deployment..."
+          kubectl rollout undo deployment/clare-vogue-backend -n clare-vogue || true
+          kubectl rollout undo deployment/clare-vogue-frontend -n clare-vogue || true
+          exit 1

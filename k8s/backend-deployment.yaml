@@ -1,0 +1,164 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clare-vogue-backend
+  namespace: clare-vogue
+  labels:
+    app: clare-vogue-backend
+    component: api
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: clare-vogue-backend
+  template:
+    metadata:
+      labels:
+        app: clare-vogue-backend
+        component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        fsReadOnlyRootFilesystem: true
+        seccompProfile:
+          type: RuntimeDefault
+      
+      serviceAccountName: clare-vogue-backend
+      
+      containers:
+      - name: backend
+        image: ghcr.io/jpunique/clare-vogue-backend:latest
+        imagePullPolicy: IfNotPresent
+        
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: clare-vogue-config
+              key: NODE_ENV
+        - name: PORT
+          value: "3000"
+        - name: HOSTNAME
+          value: "0.0.0.0"
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: clare-vogue-config
+              key: LOG_LEVEL
+        
+        # Secrets from .env
+        envFrom:
+        - secretRef:
+            name: clare-vogue-env
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+        # STARTUP PROBE: Checks database, Supabase, and all critical dependencies
+        # Runs first - waits for dependencies to be ready before marking pod as started
+        startupProbe:
+          httpGet:
+            path: /api/v1/health/startup
+            port: http
+            httpHeaders:
+            - name: User-Agent
+              value: k8s-startup-probe
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 30  # 30 * 10 = 300 seconds = 5 minutes max startup time
+        
+        # READINESS PROBE: Checks if pod can receive traffic
+        # Runs continuously during operation
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health/ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        
+        # LIVENESS PROBE: Checks if pod should be restarted
+        # Runs after startup is complete
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: var-tmp
+          mountPath: /var/tmp
+      
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 100Mi
+      - name: var-tmp
+        emptyDir:
+          sizeLimit: 100Mi
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - clare-vogue-backend
+              topologyKey: kubernetes.io/hostname
+      
+      terminationGracePeriodSeconds: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clare-vogue-backend
+  namespace: clare-vogue
+  labels:
+    app: clare-vogue-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: clare-vogue-backend
+  ports:
+  - name: http
+    port: 3000
+    targetPort: http
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: clare-vogue-backend
+  namespace: clare-vogue
