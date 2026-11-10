@@ -21,8 +21,8 @@ WORKDIR /app
 # Copy root dependencies
 COPY --from=build /app/package.json /app/package-lock.json ./
 
-# Copy compiled backend code to working directory
-COPY --from=build /app/apps/backend/dist ./
+# Copy compiled backend code with correct path
+COPY --from=build /app/apps/backend/dist ./dist
 
 # Copy all node_modules from monorepo
 COPY --from=build /app/node_modules ./node_modules
