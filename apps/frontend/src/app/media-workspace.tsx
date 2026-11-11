@@ -571,22 +571,6 @@ export default function MediaWorkspace() {
     }
   }
 
-  async function signInWithProvider(provider: "google" | "apple") {
-    if (!supabaseClient) return;
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      const result = await supabaseClient.auth.signInWithOAuth({
-        provider,
-        options: { redirectTo: window.location.origin },
-      });
-      if (result.error) throw result.error;
-    } catch (cause) {
-      setError(getErrorMessage(cause));
-      setBusy(false);
-    }
-  }
 
   function switchAuthTab(tab: "sign-in" | "sign-up") {
     if (tab === authTab) return;
@@ -836,7 +820,6 @@ export default function MediaWorkspace() {
           onMfaSubmit={submitMfa}
           onOtpChange={setOtp}
           onPasswordChange={setPassword}
-          onProviderSignIn={signInWithProvider}
           onResetPassword={sendPasswordReset}
           onRememberMeChange={setRememberMe}
           onShowPasswordChange={setShowPassword}

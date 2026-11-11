@@ -42,7 +42,6 @@ type AuthScreenProps = {
   onMfaSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onOtpChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
-  onProviderSignIn: (provider: "google" | "apple") => void;
   onResetPassword: () => void;
   onRememberMeChange: (value: boolean) => void;
   onShowPasswordChange: (value: boolean) => void;
@@ -51,40 +50,6 @@ type AuthScreenProps = {
   onTabChange: (tab: AuthTab) => void;
 };
 
-function GoogleMark() {
-  return (
-    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 48 48">
-      <path
-        fill="#FFC107"
-        d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.5 9.5 0 0 1-4.1 6.2v5.1h6.6c3.9-3.6 6.1-8.8 6.1-15Z"
-      />
-      <path
-        fill="#34A853"
-        d="M24 44c5.5 0 10.1-1.8 13.5-4.8l-6.6-5.1c-1.8 1.2-4.1 2-6.9 2-5.3 0-9.8-3.6-11.4-8.4H5.8v5.3A20 20 0 0 0 24 44Z"
-      />
-      <path
-        fill="#4285F4"
-        d="M12.6 27.7a12 12 0 0 1 0-7.4V15H5.8a20 20 0 0 0 0 18Z"
-      />
-      <path
-        fill="#EA4335"
-        d="M24 12c3 0 5.7 1 7.8 3.1l5.8-5.8A19.4 19.4 0 0 0 24 4 20 20 0 0 0 5.8 15l6.8 5.3C14.2 15.6 18.7 12 24 12Z"
-      />
-    </svg>
-  );
-}
-
-function AppleMark() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-4 w-4 fill-current"
-      viewBox="0 0 384 512"
-    >
-      <path d="M318.7 268.7c-.2-36.7 16.4-64.3 49.9-84.7-18.7-26.8-47-41.5-84.3-44.4-35.3-2.8-74 20.6-88.2 20.6-15 0-49.3-19.6-76.1-19.6C64.6 141.5 0 190.6 0 285.3c0 28 5.1 56.9 15.3 86.8 13.6 39.1 62.7 134.9 114 133.4 25.3-.6 43.2-18 75.8-18 31.7 0 48.3 18 76.5 18 51.8-.8 96.2-87.9 109.2-127.1-69.3-32.7-72.1-107.7-72.1-109.7ZM262.5 105.7c27.2-32.3 24.7-61.9 23.9-72.5-24 1.4-51.8 16.3-67.6 34.3-17.4 19.5-27.6 43.6-25.4 70.7 25.9 2 49.6-11.3 69.1-32.5Z" />
-    </svg>
-  );
-}
 
 export default function AuthScreen({
   authConfigured,
@@ -112,7 +77,6 @@ export default function AuthScreen({
   onMfaSubmit,
   onOtpChange,
   onPasswordChange,
-  onProviderSignIn,
   onResetPassword,
   onRememberMeChange,
   onShowPasswordChange,
@@ -652,35 +616,6 @@ export default function AuthScreen({
                         </form>
                       )}
 
-                      {authTab === "sign-in" && (
-                        <>
-                          <div className="my-5 flex items-center gap-3 text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">
-                            <span className="h-px flex-1 bg-white/10" />
-                            Or continue with
-                            <span className="h-px flex-1 bg-white/10" />
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <button
-                              className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/75 transition hover:border-white/20 hover:bg-white/[0.08] disabled:opacity-50"
-                              disabled={busy}
-                              onClick={() => onProviderSignIn("google")}
-                              type="button"
-                            >
-                              <GoogleMark />
-                              Google
-                            </button>
-                            <button
-                              className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/75 transition hover:border-white/20 hover:bg-white/[0.08] disabled:opacity-50"
-                              disabled={busy}
-                              onClick={() => onProviderSignIn("apple")}
-                              type="button"
-                            >
-                              <AppleMark />
-                              Apple
-                            </button>
-                          </div>
-                        </>
-                      )}
                     </>
                   )}
 
