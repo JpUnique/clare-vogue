@@ -27,6 +27,13 @@ COPY --from=build /app/apps/backend/dist ./dist
 # Copy all node_modules from monorepo
 COPY --from=build /app/node_modules ./node_modules
 
+# Copy migration files and config for drizzle-kit
+COPY --from=build /app/apps/backend/drizzle.config.ts ./
+COPY --from=build /app/apps/backend/drizzle ./drizzle
+COPY --from=build /app/apps/backend/tsconfig.json ./
+COPY --from=build /app/tsconfig.base.json ./
+COPY --from=build /app/package-lock.json ./
+
 USER 1000
 
 EXPOSE 3000
