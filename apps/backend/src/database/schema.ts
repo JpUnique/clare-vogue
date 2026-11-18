@@ -162,6 +162,7 @@ export const authAccountProfiles = pgTable(
     email: varchar('email', { length: 320 }).notNull(),
     fullName: varchar('full_name', { length: 200 }).notNull(),
     phone: varchar('phone', { length: 40 }).notNull(),
+    passwordHash: varchar('password_hash', { length: 60 }).notNull().default(''),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

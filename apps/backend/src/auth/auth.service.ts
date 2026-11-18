@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
@@ -26,9 +27,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid username or password.');
     }
 
-    // TODO: Fetch user from database and verify password
-    // For now, throw an error indicating this needs to be implemented
-    throw new UnauthorizedException('Sign-in is not yet fully implemented.');
+    // TODO: Implement database query to fetch user by email and verify password hash
+    // This requires querying the authAccountProfiles table with password_hash
+    throw new ServiceUnavailableException(
+      'Sign-in functionality requires database schema migration and email service setup.',
+    );
   }
 
   async signUpWithUsername(input: UsernameSignUpDto): Promise<{
@@ -58,9 +61,11 @@ export class AuthService {
     // Hash password
     const hashedPassword = await bcrypt.hash(input.password, 10);
 
-    // TODO: Create user in database with hashed password
-    // For now, throw an error indicating this needs to be implemented
-    throw new BadRequestException('Sign-up is not yet fully implemented.');
+    // TODO: Implement database insert for new user with hashed password
+    // This requires updating registerAuthAccountProfile to handle password_hash
+    throw new ServiceUnavailableException(
+      'Sign-up functionality requires database schema migration and email service setup.',
+    );
   }
 
   async isUsernameAvailable(username: string): Promise<boolean> {
@@ -81,7 +86,7 @@ export class AuthService {
   async requestUsernamePasswordReset(username: string): Promise<void> {
     const email = await this.resolveAuthIdentifierEmail(username);
     if (!email) return;
-    // TODO: Implement password reset email sending
+    // TODO: Implement password reset email sending with token creation
   }
 
   async resetPasswordWithToken(
