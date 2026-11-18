@@ -123,6 +123,9 @@ export default function MediaWorkspace() {
         rememberMe={true}
         showPassword={showPassword}
         theme={lampThemes[accentIndex]}
+        resetToken=""
+        newPassword=""
+        confirmPassword=""
         onEmailChange={setEmail}
         onFullNameChange={setFullName}
         onPhoneChange={setPhone}
@@ -132,6 +135,10 @@ export default function MediaWorkspace() {
         onOtpChange={() => {}}
         onPasswordChange={setPassword}
         onResetPassword={() => {}}
+        onCompletePasswordReset={() => {}}
+        onResetTokenChange={() => {}}
+        onNewPasswordChange={() => {}}
+        onConfirmPasswordChange={() => {}}
         onRememberMeChange={() => {}}
         onShowPasswordChange={setShowPassword}
         onSignIn={submitSignIn}

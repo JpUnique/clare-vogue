@@ -244,6 +244,9 @@ export default function MediaWorkspaceSecure() {
           rememberMe={true}
           showPassword={showPassword}
           theme={lampThemes[accentIndex]}
+          resetToken=""
+          newPassword=""
+          confirmPassword=""
           onEmailChange={setEmail}
           onFullNameChange={setFullName}
           onPhoneChange={setPhone}
@@ -253,6 +256,10 @@ export default function MediaWorkspaceSecure() {
           onOtpChange={() => {}}
           onPasswordChange={setPassword}
           onResetPassword={goToForgotPassword}
+          onCompletePasswordReset={() => {}}
+          onResetTokenChange={() => {}}
+          onNewPasswordChange={() => {}}
+          onConfirmPasswordChange={() => {}}
           onRememberMeChange={() => {}}
           onShowPasswordChange={setShowPassword}
           onSignIn={handleSignIn}
@@ -290,6 +297,9 @@ export default function MediaWorkspaceSecure() {
           rememberMe={true}
           showPassword={showPassword}
           theme={lampThemes[accentIndex]}
+          resetToken=""
+          newPassword=""
+          confirmPassword=""
           onEmailChange={setEmail}
           onFullNameChange={setFullName}
           onPhoneChange={setPhone}
@@ -299,6 +309,10 @@ export default function MediaWorkspaceSecure() {
           onOtpChange={() => {}}
           onPasswordChange={setPassword}
           onResetPassword={() => {}}
+          onCompletePasswordReset={() => {}}
+          onResetTokenChange={() => {}}
+          onNewPasswordChange={() => {}}
+          onConfirmPasswordChange={() => {}}
           onRememberMeChange={() => {}}
           onShowPasswordChange={setShowPassword}
           onSignIn={() => goToSignIn()}
