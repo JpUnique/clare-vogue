@@ -2,15 +2,15 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
-  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import { randomUUID } from 'node:crypto';
 import { DatabaseService } from '../database/database.service.js';
 import type { UsernameSignUpDto } from './auth.dto.js';
 
 const usernamePattern = /^[a-z0-9][a-z0-9._-]{2,31}$/;
-const phonePattern = /^\+[1-9][0-9]{7,14}$/;
+const phonePattern = /^\+[1-9]\d{7,14}$/;
 
 @Injectable()
 export class AuthService {
@@ -27,11 +27,21 @@ export class AuthService {
       throw new UnauthorizedException('Invalid username or password.');
     }
 
-    // TODO: Implement database query to fetch user by email and verify password hash
-    // This requires querying the authAccountProfiles table with password_hash
-    throw new ServiceUnavailableException(
-      'Sign-in functionality requires database schema migration and email service setup.',
-    );
+    const account = await this.database.getAuthAccountByEmail(email);
+    if (!account) {
+      throw new UnauthorizedException('Invalid username or password.');
+    }
+
+    const passwordMatches = await bcrypt.compare(password, account.passwordHash);
+    if (!passwordMatches) {
+      throw new UnauthorizedException('Invalid username or password.');
+    }
+
+    return {
+      userId: account.userId,
+      username: account.username,
+      email,
+    };
   }
 
   async signUpWithUsername(input: UsernameSignUpDto): Promise<{
@@ -60,12 +70,22 @@ export class AuthService {
 
     // Hash password
     const hashedPassword = await bcrypt.hash(input.password, 10);
+    const userId = randomUUID();
 
-    // TODO: Implement database insert for new user with hashed password
-    // This requires updating registerAuthAccountProfile to handle password_hash
-    throw new ServiceUnavailableException(
-      'Sign-up functionality requires database schema migration and email service setup.',
-    );
+    // Create user in auth account profiles table
+    await this.database.createAuthAccountWithPassword({
+      userId,
+      username,
+      email,
+      fullName,
+      phone,
+      passwordHash: hashedPassword,
+    });
+
+    return {
+      userId,
+      confirmationRequired: false,
+    };
   }
 
   async isUsernameAvailable(username: string): Promise<boolean> {
@@ -87,6 +107,7 @@ export class AuthService {
     const email = await this.resolveAuthIdentifierEmail(username);
     if (!email) return;
     // TODO: Implement password reset email sending with token creation
+    // This requires email service integration to send reset link with token
   }
 
   async resetPasswordWithToken(
@@ -94,6 +115,7 @@ export class AuthService {
     newPassword: string,
   ): Promise<void> {
     // TODO: Implement password reset with token verification
-    throw new Error('Password reset not yet implemented.');
+    // This requires storing password reset tokens with expiry in database
+    throw new UnauthorizedException('Password reset token verification not implemented.');
   }
 }

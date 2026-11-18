@@ -162,7 +162,7 @@ export const authAccountProfiles = pgTable(
     email: varchar('email', { length: 320 }).notNull(),
     fullName: varchar('full_name', { length: 200 }).notNull(),
     phone: varchar('phone', { length: 40 }).notNull(),
-    passwordHash: varchar('password_hash', { length: 60 }).notNull().default(''),
+    passwordHash: varchar('password_hash', { length: 60 }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -184,6 +184,10 @@ export const authAccountProfiles = pgTable(
     check(
       'auth_account_profiles_phone_check',
       sql`${table.phone} ~ '^\\+[1-9][0-9]{7,14}$'`,
+    ),
+    check(
+      'auth_account_profiles_password_hash_check',
+      sql`length(${table.passwordHash}) > 0`,
     ),
     pgPolicy('auth_account_profiles_self_select', {
       for: 'select',

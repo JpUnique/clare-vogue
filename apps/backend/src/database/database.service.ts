@@ -123,6 +123,62 @@ export class DatabaseService implements OnModuleDestroy {
     );
   }
 
+  async getAuthAccountByEmail(
+    email: string,
+  ): Promise<{ userId: string; username: string; passwordHash: string } | null> {
+    if (!this.database) {
+      throw new ServiceUnavailableException('Database is not configured.');
+    }
+
+    const result = await this.database
+      .select({
+        userId: schema.authAccountProfiles.userId,
+        username: schema.authAccountProfiles.username,
+        passwordHash: schema.authAccountProfiles.passwordHash,
+      })
+      .from(schema.authAccountProfiles)
+      .where(eq(schema.authAccountProfiles.email, email.toLowerCase()))
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
+  async createAuthAccountWithPassword(profile: {
+    userId: string;
+    username: string;
+    email: string;
+    fullName: string;
+    phone: string;
+    passwordHash: string;
+  }): Promise<void> {
+    if (!this.database) {
+      throw new ServiceUnavailableException('Database is not configured.');
+    }
+
+    await this.database.insert(schema.authAccountProfiles).values({
+      userId: profile.userId as any,
+      username: profile.username,
+      email: profile.email.toLowerCase(),
+      fullName: profile.fullName,
+      phone: profile.phone,
+      passwordHash: profile.passwordHash,
+    });
+  }
+
+  async updateAuthAccountPassword(
+    email: string,
+    passwordHash: string,
+  ): Promise<void> {
+    if (!this.database) {
+      throw new ServiceUnavailableException('Database is not configured.');
+    }
+
+    await this.database
+      .update(schema.authAccountProfiles)
+      .set({ passwordHash })
+      .where(eq(schema.authAccountProfiles.email, email.toLowerCase()));
+  }
+
   async withAuthorizedBusinessTransaction<Result>(
     userId: string,
     operation: (

@@ -6,9 +6,14 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
-import { AuthService } from './auth.service.js';
+import { SessionService } from './session.service.js';
 import { IS_PUBLIC_KEY } from './auth.constants.js';
-import type { AuthenticatedUser } from './authenticated-user.js';
+
+interface AuthenticatedUser {
+  id: string;
+  username: string;
+  email: string;
+}
 
 interface AuthenticatedRequest extends Request {
   user?: AuthenticatedUser;
@@ -18,7 +23,7 @@ interface AuthenticatedRequest extends Request {
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly auth: AuthService,
+    private readonly session: SessionService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -31,16 +36,23 @@ export class AuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const authorization = request.headers.authorization;
-    if (
-      typeof authorization !== 'string' ||
-      authorization.length > 8192 ||
-      !/^Bearer [^\s]+$/i.test(authorization)
-    ) {
-      throw new UnauthorizedException('A bearer access token is required.');
+    const accessToken = request.cookies?.accessToken;
+
+    if (!accessToken) {
+      throw new UnauthorizedException('Authentication token is required.');
     }
 
-    request.user = await this.auth.authenticate(authorization.slice(7));
+    const payload = this.session.verifyAccessToken(accessToken);
+    if (!payload) {
+      throw new UnauthorizedException('Invalid or expired authentication token.');
+    }
+
+    request.user = {
+      id: payload.userId,
+      username: payload.username,
+      email: payload.email,
+    };
+
     return true;
   }
 }
