@@ -20,8 +20,6 @@ export class HealthService {
   async checkDependencies(): Promise<Record<string, DependencyCheck>> {
     const checks: Record<string, DependencyCheck> = {
       database: await this.checkDatabase(),
-      supabase: this.checkSupabaseConfig(),
-      config: await this.checkConfig(),
     };
 
     return checks;
@@ -31,7 +29,6 @@ export class HealthService {
     const checks = await this.checkDependencies();
 
     // Strict mode: ensure critical dependencies (database only) are ready
-    // Supabase is optional for startup
     const criticalDependencies = ['database'];
     for (const dep of criticalDependencies) {
       if (!checks[dep]?.ready) {
@@ -66,71 +63,4 @@ export class HealthService {
     }
   }
 
-  private checkSupabaseConfig(): DependencyCheck {
-    try {
-      const url = this.config.get<string>('SUPABASE_URL');
-      const publishableKey = this.config.get<string>('SUPABASE_PUBLISHABLE_KEY');
-      const secretKey = this.config.get<string>('SUPABASE_SECRET_KEY');
-
-      if (!url || !publishableKey) {
-        return {
-          ready: false,
-          error: 'Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY',
-        };
-      }
-
-      const authConfigured = !!secretKey;
-      this.logger.debug(
-        `Supabase configured: url=${url.substring(0, 30)}... (auth: ${authConfigured})`,
-      );
-
-      return {
-        ready: true,
-      };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-
-      return {
-        ready: false,
-        error: message,
-      };
-    }
-  }
-
-  private async checkConfig(): Promise<DependencyCheck> {
-    try {
-      const requiredEnvVars = [
-        'DATABASE_URL',
-        'SUPABASE_URL',
-        'SUPABASE_PUBLISHABLE_KEY',
-      ];
-
-      const missing: string[] = [];
-      for (const envVar of requiredEnvVars) {
-        if (!this.config.get<string>(envVar)) {
-          missing.push(envVar);
-        }
-      }
-
-      if (missing.length > 0) {
-        return {
-          ready: false,
-          error: `Missing environment variables: ${missing.join(', ')}`,
-        };
-      }
-
-      this.logger.debug('Configuration check passed');
-
-      return {
-        ready: true,
-      };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-
-      return {
-        ready: false,
-        error: message,
-      };
-    }
-  }
 }
