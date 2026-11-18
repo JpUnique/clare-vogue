@@ -1,16 +1,25 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_AUTH_CLIENT } from './auth.constants.js';
 import { AuthController } from './auth.controller.js';
+import { AuthControllerV2 } from './auth.controller-v2.js';
 import { AuthGuard } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
+import { SessionService } from './session.service.js';
 import type { SupabaseAuthClient } from './auth.types.js';
 import { DatabaseService } from '../database/database.service.js';
 
 @Module({
-  controllers: [AuthController],
+  imports: [
+    JwtModule.register({
+      secret: process.env.JWT_ACCESS_SECRET || 'access-secret',
+      signOptions: { expiresIn: '15m' },
+    }),
+  ],
+  controllers: [AuthController, AuthControllerV2],
   providers: [
     {
       provide: SUPABASE_AUTH_CLIENT,
@@ -59,12 +68,13 @@ import { DatabaseService } from '../database/database.service.js';
         database: DatabaseService,
       ) => new AuthService(client, database),
     },
+    SessionService,
     AuthGuard,
     {
       provide: APP_GUARD,
       useExisting: AuthGuard,
     },
   ],
-  exports: [AuthService],
+  exports: [AuthService, SessionService],
 })
 export class AuthModule {}

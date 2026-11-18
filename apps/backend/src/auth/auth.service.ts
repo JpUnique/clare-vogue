@@ -63,7 +63,7 @@ export class AuthService {
   async signInWithUsername(
     username: string,
     password: string,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  ): Promise<{ userId: string; username: string; email: string; accessToken: string; refreshToken: string }> {
     const client = this.getClient();
     const email = await this.resolveAuthIdentifierEmail(username);
     if (!email) {
@@ -87,12 +87,16 @@ export class AuthService {
     }
 
     return {
+      userId: result.data.user?.id || '',
+      username: username.toLowerCase().trim(),
+      email: email.toLowerCase(),
       accessToken: result.data.session.access_token,
       refreshToken: result.data.session.refresh_token,
     };
   }
 
   async signUpWithUsername(input: UsernameSignUpDto): Promise<{
+    userId: string;
     accessToken: string | null;
     refreshToken: string | null;
     confirmationRequired: boolean;
@@ -142,6 +146,7 @@ export class AuthService {
 
     const session = result.data.session;
     return {
+      userId: result.data.user.id,
       accessToken: session?.access_token ?? null,
       refreshToken: session?.refresh_token ?? null,
       confirmationRequired: session === null,
@@ -354,6 +359,20 @@ export class AuthService {
     throw new ServiceUnavailableException(
       'Authentication provider is unavailable.',
     );
+  }
+
+  async resetPasswordWithToken(
+    token: string,
+    newPassword: string,
+  ): Promise<void> {
+    // This is a placeholder for password reset implementation
+    // In a real implementation, this would:
+    // 1. Verify the token is valid and not expired
+    // 2. Find the user associated with the token
+    // 3. Update their password in the auth system
+    // 4. Optionally invalidate previous sessions
+
+    throw new Error('Password reset not yet implemented. Use email verification instead.');
   }
 
   private getClient(): SupabaseAuthClient {
