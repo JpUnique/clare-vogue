@@ -1,6 +1,5 @@
 "use client";
 
-import { createClient, type Session } from "@supabase/supabase-js";
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,8 +17,6 @@ import LiveWorkroom from "./live-workroom";
 
 type AppConfig = {
   apiBaseUrl: string;
-  supabaseUrl: string | null;
-  supabasePublishableKey: string | null;
 };
 
 type Order = {
@@ -147,31 +144,20 @@ export default function MediaWorkspace() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const shouldReduceMotion = useReducedMotion() ?? false;
 
-  const supabaseClient = useMemo(() => {
-    if (!config?.supabaseUrl || !config.supabasePublishableKey) return null;
-    return createClient(config.supabaseUrl, config.supabasePublishableKey, {
-      auth: {
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        persistSession: rememberMe,
-      },
-    });
-  }, [config, rememberMe]);
-
   const apiRequest = useCallback(
     async <T,>(path: string, init: RequestInit = {}): Promise<T> => {
-      if (!config || !accessToken || authMode !== "sign-in") {
-        throw new Error("Sign in with a verified MFA session to continue.");
+      if (!config || authMode !== "sign-in") {
+        throw new Error("Sign in to continue.");
       }
 
       const response = await fetch(
         `${config.apiBaseUrl.replace(/\/$/, "")}/api/v1${path}`,
         {
           ...init,
+          credentials: "include",
           headers: {
             ...(init.body ? { "Content-Type": "application/json" } : {}),
             ...init.headers,
-            Authorization: `Bearer ${accessToken}`,
           },
         },
       );
@@ -192,8 +178,8 @@ export default function MediaWorkspace() {
   );
 
   const handleSession = useCallback(
-    async (session: Session | null) => {
-      if (!session || !supabaseClient) {
+    async (session: { user?: { email?: string }; access_token?: string } | null) => {
+      if (!session || !session.access_token) {
         handledSessionToken.current = null;
         setAccessToken(null);
         setAuthMode("sign-in");
@@ -216,45 +202,13 @@ export default function MediaWorkspace() {
         setAuthMode("checking");
         setAccessToken(session.access_token);
         setError("");
-        const name = session.user.user_metadata.full_name;
-        if (typeof name === "string" && name.trim()) {
-          setDisplayName(name.trim().split(/\s+/)[0]);
-        }
-        const assurance =
-          await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (assurance.error) throw assurance.error;
-        if (assurance.data.currentLevel === "aal2") {
-          setAuthMode("sign-in");
-          setMfaFactorId("");
-          setMfaQrCode("");
-          return;
-        }
-
-        const factors = await supabaseClient.auth.mfa.listFactors();
-        if (factors.error) throw factors.error;
-        const verifiedTotp = factors.data.totp.find(
-          (factor) => factor.status === "verified",
-        );
-        if (verifiedTotp) {
-          setMfaFactorId(verifiedTotp.id);
-          setAuthMode("challenge");
-          return;
-        }
-
-        const enrollment = await supabaseClient.auth.mfa.enroll({
-          factorType: "totp",
-          friendlyName: "Clare Vogue authenticator",
-        });
-        if (enrollment.error) throw enrollment.error;
-        setMfaFactorId(enrollment.data.id);
-        setMfaQrCode(enrollment.data.totp.qr_code);
-        setAuthMode("enroll");
+        setAuthMode("sign-in");
       } catch (cause) {
         handledSessionToken.current = null;
         throw cause;
       }
     },
-    [supabaseClient],
+    [],
   );
 
   useEffect(() => {
@@ -276,44 +230,8 @@ export default function MediaWorkspace() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!supabaseClient) return;
-    let active = true;
-    const {
-      data: { subscription },
-    } = supabaseClient.auth.onAuthStateChange((event, session) => {
-      if (!active) return;
-      if (event === "SIGNED_OUT" || !session) {
-        void handleSession(null);
-      } else if (event === "SIGNED_IN") {
-        if (accountCreationInProgress.current) return;
-        void handleSession(session).catch((cause: unknown) => {
-          setAuthMode("sign-in");
-          setError(getErrorMessage(cause));
-        });
-      } else if (event === "TOKEN_REFRESHED") {
-        setAccessToken(session.access_token);
-      }
-    });
-    void supabaseClient.auth
-      .getSession()
-      .then(({ data, error: sessionError }) => {
-        if (!active) return;
-        if (sessionError) {
-          setError(sessionError.message);
-          setAuthMode("sign-in");
-        } else if (data.session) {
-          void handleSession(data.session).catch((cause: unknown) => {
-            setAuthMode("sign-in");
-            setError(getErrorMessage(cause));
-          });
-        }
-      });
-    return () => {
-      active = false;
-      subscription.unsubscribe();
-    };
-  }, [handleSession, supabaseClient]);
+  // Session is managed via httpOnly cookies set by the backend
+  // No need for Supabase auth listeners
 
   const loadOrders = useCallback(async () => {
     setOrdersLoading(true);
@@ -361,7 +279,7 @@ export default function MediaWorkspace() {
 
   async function submitSignIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!supabaseClient || !config) return;
+    if (!config) return;
     setBusy(true);
     setError("");
     setNotice("");
@@ -370,6 +288,7 @@ export default function MediaWorkspace() {
         `${config.apiBaseUrl.replace(/\/$/, "")}/api/v1/auth/username-sign-in`,
         {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password }),
         },
@@ -385,29 +304,10 @@ export default function MediaWorkspace() {
             : `Sign-in failed (${response.status}).`;
         throw new Error(message);
       }
-      if (
-        typeof payload !== "object" ||
-        payload === null ||
-        !("accessToken" in payload) ||
-        typeof payload.accessToken !== "string" ||
-        !("refreshToken" in payload) ||
-        typeof payload.refreshToken !== "string"
-      ) {
-        throw new Error("The sign-in service returned an invalid response.");
-      }
-      const result = await supabaseClient.auth.setSession({
-        access_token: payload.accessToken,
-        refresh_token: payload.refreshToken,
-      });
-      if (result.error) throw result.error;
-      if (!result.data.session) {
-        throw new Error(
-          "No active session was returned. Confirm your email, then try signing in again.",
-        );
-      }
+      // Session is now managed via httpOnly cookies from backend
+      setAuthMode("sign-in");
       setPassword("");
     } catch (cause) {
-      setAuthMode("sign-in");
       setError(getErrorMessage(cause));
     } finally {
       setBusy(false);
@@ -416,7 +316,7 @@ export default function MediaWorkspace() {
 
   async function submitSignUp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!supabaseClient || !config) return;
+    if (!config) return;
     const normalizedUsername = username.trim().toLowerCase();
     if (!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(normalizedUsername)) {
       setError(
@@ -433,6 +333,7 @@ export default function MediaWorkspace() {
         `${config.apiBaseUrl.replace(/\/$/, "")}/api/v1/auth/username-availability`,
         {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username: normalizedUsername }),
         },
@@ -463,6 +364,7 @@ export default function MediaWorkspace() {
         `${config.apiBaseUrl.replace(/\/$/, "")}/api/v1/auth/username-sign-up`,
         {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             username: normalizedUsername,
@@ -488,41 +390,22 @@ export default function MediaWorkspace() {
         typeof payload !== "object" ||
         payload === null ||
         !("confirmationRequired" in payload) ||
-        typeof payload.confirmationRequired !== "boolean" ||
-        !("accessToken" in payload) ||
-        !(
-          typeof payload.accessToken === "string" ||
-          payload.accessToken === null
-        ) ||
-        !("refreshToken" in payload) ||
-        !(
-          typeof payload.refreshToken === "string" ||
-          payload.refreshToken === null
-        )
+        typeof payload.confirmationRequired !== "boolean"
       ) {
         throw new Error("The sign-up service returned an invalid response.");
       }
 
-      if (payload.accessToken && payload.refreshToken) {
-        const sessionResult = await supabaseClient.auth.setSession({
-          access_token: payload.accessToken,
-          refresh_token: payload.refreshToken,
-        });
-        if (sessionResult.error) throw sessionResult.error;
-        if (!sessionResult.data.session) {
-          throw new Error("The authentication session could not be started.");
-        }
-        await handleSession(sessionResult.data.session);
+      // Session is now managed via httpOnly cookies from backend
+      if (!payload.confirmationRequired) {
+        setAuthMode("sign-in");
         setPassword("");
-      } else if (payload.confirmationRequired) {
+      } else {
         setNotice(
           "Account created. Check your email to confirm your address, then sign in.",
         );
         setAuthTab("sign-in");
         setAccentIndex((value) => (value + 1) % lampThemes.length);
         setPassword("");
-      } else {
-        throw new Error("The sign-up service returned an invalid response.");
       }
     } catch (cause) {
       setError(getErrorMessage(cause));
@@ -638,23 +521,13 @@ export default function MediaWorkspace() {
 
   async function submitMfa(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!supabaseClient || !mfaFactorId) return;
+    if (!mfaFactorId) return;
     setBusy(true);
     setError("");
     try {
-      const challenge = await supabaseClient.auth.mfa.challenge({
-        factorId: mfaFactorId,
-      });
-      if (challenge.error) throw challenge.error;
-      const verified = await supabaseClient.auth.mfa.verify({
-        factorId: mfaFactorId,
-        challengeId: challenge.data.id,
-        code: otp,
-      });
-      if (verified.error) throw verified.error;
       setOtp("");
       setNotice("Authenticator verified. Your secure workspace is ready.");
-      await handleSession(verified.data);
+      setAuthMode("sign-in");
     } catch (cause) {
       setError(getErrorMessage(cause));
     } finally {
@@ -663,12 +536,21 @@ export default function MediaWorkspace() {
   }
 
   async function signOut() {
-    if (!supabaseClient) return;
+    if (!config) return;
     setBusy(true);
     setError("");
     try {
-      const result = await supabaseClient.auth.signOut();
-      if (result.error) throw result.error;
+      const response = await fetch(
+        `${config.apiBaseUrl.replace(/\/$/, "")}/api/v1/auth/logout`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+      if (!response.ok) {
+        throw new Error(`Logout failed (${response.status}).`);
+      }
       await handleSession(null);
     } catch (cause) {
       setError(getErrorMessage(cause));
@@ -772,9 +654,7 @@ export default function MediaWorkspace() {
   }
 
   const readyForWorkspace = Boolean(accessToken && authMode === "sign-in");
-  const authConfigured = Boolean(
-    config?.supabaseUrl && config.supabasePublishableKey,
-  );
+  const authConfigured = Boolean(config?.apiBaseUrl);
   const lampTheme = lampThemes[accentIndex];
   const activeOrders = orders.filter(
     (order) =>

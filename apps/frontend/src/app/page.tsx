@@ -1,5 +1,5 @@
-import MediaWorkspaceSecure from "./media-workspace-secure";
+import MediaWorkspace from "./media-workspace";
 
 export default function Home() {
-  return <MediaWorkspaceSecure />;
+  return <MediaWorkspace />;
 }

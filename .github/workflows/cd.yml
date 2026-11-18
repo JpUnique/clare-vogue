@@ -44,9 +44,6 @@ jobs:
         run: |
           cat > .env << EOF
           DATABASE_URL=${{ secrets.DATABASE_URL }}
-          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_SECRET_KEY=${{ secrets.SUPABASE_SECRET_KEY }}
           GHCR_PULL_USER=${{ secrets.GHCR_PULL_USER }}
           GHCR_PULL_TOKEN=${{ secrets.GHCR_PULL_TOKEN }}
           EOF
