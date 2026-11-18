@@ -24,11 +24,17 @@ fi
 
 # Download latest runner
 echo "⬇️  Downloading latest runner..."
-RUNNER_RELEASE=$(curl -s https://api.github.com/repos/actions/runner/releases/latest | grep -o '"browser_download_url.*runner-linux-arm64.*\.tar\.gz' | sed 's/"browser_download_url": "//g')
+RUNNER_RELEASE=$(curl -s https://api.github.com/repos/actions/runner/releases/latest | grep -o '"browser_download_url": "[^"]*runner-linux-x64[^"]*\.tar\.gz' | head -1 | cut -d'"' -f4)
+
+if [ -z "$RUNNER_RELEASE" ]; then
+  echo "❌ Failed to find latest runner release"
+  exit 1
+fi
 
 if [ -f "bin/Runner.Listener" ]; then
   echo "✅ Runner already downloaded"
 else
+  echo "Downloading from: $RUNNER_RELEASE"
   curl -L "$RUNNER_RELEASE" | tar xz
 fi
 
