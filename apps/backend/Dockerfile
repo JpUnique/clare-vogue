@@ -31,8 +31,6 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/backend/drizzle.config.ts ./
 COPY --from=build /app/apps/backend/drizzle ./drizzle
 COPY --from=build /app/apps/backend/tsconfig.json ./
-COPY --from=build /app/tsconfig.base.json ./
-COPY --from=build /app/package-lock.json ./
 
 USER 1000
 
