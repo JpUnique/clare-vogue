@@ -8,6 +8,7 @@ import { CustomerModule } from './customers/customer.module.js';
 import { OrderModule } from './orders/order.module.js';
 import { MediaModule } from './media/media.module.js';
 import { WorkroomModule } from './workroom/workroom.module.js';
+import { InitializationService } from './bootstrap/initialization.service.js';
 
 @Module({
   imports: [
@@ -24,5 +25,6 @@ import { WorkroomModule } from './workroom/workroom.module.js';
     MediaModule,
     WorkroomModule,
   ],
+  providers: [InitializationService],
 })
 export class AppModule {}

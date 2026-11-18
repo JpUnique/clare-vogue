@@ -34,6 +34,9 @@ type AuthScreenProps = {
   rememberMe: boolean;
   showPassword: boolean;
   theme: { name: string; color: string };
+  resetToken: string;
+  newPassword: string;
+  confirmPassword: string;
   onEmailChange: (value: string) => void;
   onFullNameChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
@@ -43,6 +46,10 @@ type AuthScreenProps = {
   onOtpChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onResetPassword: () => void;
+  onCompletePasswordReset: () => void;
+  onResetTokenChange: (value: string) => void;
+  onNewPasswordChange: (value: string) => void;
+  onConfirmPasswordChange: (value: string) => void;
   onRememberMeChange: (value: boolean) => void;
   onShowPasswordChange: (value: boolean) => void;
   onSignIn: (event: FormEvent<HTMLFormElement>) => void;
@@ -69,6 +76,9 @@ export default function AuthScreen({
   rememberMe,
   showPassword,
   theme,
+  resetToken,
+  newPassword,
+  confirmPassword,
   onEmailChange,
   onFullNameChange,
   onPhoneChange,
@@ -78,6 +88,10 @@ export default function AuthScreen({
   onOtpChange,
   onPasswordChange,
   onResetPassword,
+  onCompletePasswordReset,
+  onResetTokenChange,
+  onNewPasswordChange,
+  onConfirmPasswordChange,
   onRememberMeChange,
   onShowPasswordChange,
   onSignIn,

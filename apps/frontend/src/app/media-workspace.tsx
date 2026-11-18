@@ -118,6 +118,9 @@ export default function MediaWorkspace() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [authTab, setAuthTab] = useState<"sign-in" | "sign-up">("sign-in");
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [lampOn, setLampOn] = useState(false);
@@ -418,7 +421,7 @@ export default function MediaWorkspace() {
   async function sendPasswordReset() {
     if (!config) return;
     if (!username.trim()) {
-      setError("Enter your username first so we can send a reset link.");
+      setError("Enter your username or email first so we can send a reset link.");
       return;
     }
     setBusy(true);
@@ -426,11 +429,65 @@ export default function MediaWorkspace() {
     setNotice("");
     try {
       const response = await fetch(
-        `${config.apiBaseUrl.replace(/\/$/, "")}/api/v1/auth/password-reset`,
+        `${config.apiBaseUrl.replace(/\/$/, "")}/api/v1/auth/forgot-password`,
         {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username }),
+        },
+      );
+      const payload: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message =
+          typeof payload === "object" &&
+          payload !== null &&
+          "message" in payload &&
+          typeof payload.message === "string"
+            ? payload.message
+            : `Password reset request failed (${response.status}).`;
+        throw new Error(message);
+      }
+      setNotice(
+        "If an account exists for that username or email, a reset link is on its way.",
+      );
+    } catch (cause) {
+      setError(getErrorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function completePasswordReset() {
+    if (!config) return;
+    if (!email.trim() || !resetToken.trim() || !newPassword || !confirmPassword) {
+      setError("Please fill in all fields.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch(
+        `${config.apiBaseUrl.replace(/\/$/, "")}/api/v1/auth/reset-password`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: email.trim(),
+            token: resetToken.trim(),
+            newPassword,
+            confirmPassword,
+          }),
         },
       );
       const payload: unknown = await response.json().catch(() => null);
@@ -444,9 +501,12 @@ export default function MediaWorkspace() {
             : `Password reset failed (${response.status}).`;
         throw new Error(message);
       }
-      setNotice(
-        "If an account exists for that username or email, a reset link is on its way.",
-      );
+      setNotice("Password reset successful. Please sign in with your new password.");
+      setAuthTab("sign-in");
+      setEmail("");
+      setResetToken("");
+      setNewPassword("");
+      setConfirmPassword("");
     } catch (cause) {
       setError(getErrorMessage(cause));
     } finally {
@@ -692,6 +752,9 @@ export default function MediaWorkspace() {
           rememberMe={rememberMe}
           showPassword={showPassword}
           theme={lampTheme}
+          resetToken={resetToken}
+          newPassword={newPassword}
+          confirmPassword={confirmPassword}
           onEmailChange={setEmail}
           onFullNameChange={setFullName}
           onPhoneChange={setPhone}
@@ -701,6 +764,10 @@ export default function MediaWorkspace() {
           onOtpChange={setOtp}
           onPasswordChange={setPassword}
           onResetPassword={sendPasswordReset}
+          onCompletePasswordReset={completePasswordReset}
+          onResetTokenChange={setResetToken}
+          onNewPasswordChange={setNewPassword}
+          onConfirmPasswordChange={setConfirmPassword}
           onRememberMeChange={setRememberMe}
           onShowPasswordChange={setShowPassword}
           onSignIn={submitSignIn}

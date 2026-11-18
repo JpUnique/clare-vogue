@@ -5,7 +5,6 @@ import { AuthControllerV2 } from './auth.controller-v2.js';
 import { AuthGuard } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
 import { SessionService } from './session.service.js';
-import { DatabaseService } from '../database/database.service.js';
 
 @Module({
   imports: [
@@ -18,16 +17,12 @@ import { DatabaseService } from '../database/database.service.js';
   providers: [
     AuthService,
     SessionService,
-    {
-      provide: DatabaseService,
-      useClass: DatabaseService,
-    },
     AuthGuard,
     {
       provide: APP_GUARD,
       useExisting: AuthGuard,
     },
   ],
-  exports: [AuthService, SessionService, DatabaseService],
+  exports: [AuthService, SessionService],
 })
 export class AuthModule {}

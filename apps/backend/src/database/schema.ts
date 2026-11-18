@@ -196,6 +196,25 @@ export const authAccountProfiles = pgTable(
   ],
 ).enableRLS();
 
+export const passwordResetTokens = pgTable(
+  'password_reset_tokens',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => authAccountProfiles.userId, { onDelete: 'cascade' }),
+    token: varchar('token', { length: 255 }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('password_reset_tokens_token_unique').on(table.token),
+    index('password_reset_tokens_user_id_idx').on(table.userId),
+  ],
+);
+
 export const businesses = pgTable(
   'businesses',
   {

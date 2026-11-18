@@ -148,12 +148,25 @@ export class AuthControllerV2 {
   async resetPassword(
     @Body()
     input: {
+      email: string;
       token: string;
       newPassword: string;
+      confirmPassword: string;
     },
   ) {
-    // TODO: Implement password reset with token verification
-    await this.authService.resetPasswordWithToken(input.token, input.newPassword);
+    if (input.newPassword !== input.confirmPassword) {
+      throw new Error('Passwords do not match.');
+    }
+
+    if (input.newPassword.length < 8) {
+      throw new Error('Password must be at least 8 characters long.');
+    }
+
+    await this.authService.resetPasswordWithToken(
+      input.email,
+      input.token,
+      input.newPassword,
+    );
 
     return {
       success: true,

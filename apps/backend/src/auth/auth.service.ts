@@ -106,16 +106,50 @@ export class AuthService {
   async requestUsernamePasswordReset(username: string): Promise<void> {
     const email = await this.resolveAuthIdentifierEmail(username);
     if (!email) return;
-    // TODO: Implement password reset email sending with token creation
-    // This requires email service integration to send reset link with token
+
+    const account = await this.database.getAuthAccountByEmail(email);
+    if (!account) return;
+
+    // Generate secure reset token
+    const resetToken = randomUUID();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    await this.database.createPasswordResetToken(
+      account.userId,
+      resetToken,
+      expiresAt,
+    );
+
+    // TODO: Send email with reset link containing the token
+    // For now, log the token (in production, this would be sent via email service)
+    console.log(`Password reset token for ${email}: ${resetToken}`);
   }
 
   async resetPasswordWithToken(
+    email: string,
     token: string,
     newPassword: string,
   ): Promise<void> {
-    // TODO: Implement password reset with token verification
-    // This requires storing password reset tokens with expiry in database
-    throw new UnauthorizedException('Password reset token verification not implemented.');
+    const resetToken = await this.database.getPasswordResetToken(token);
+    if (!resetToken) {
+      throw new UnauthorizedException('Invalid or expired reset token.');
+    }
+
+    if (resetToken.expiresAt < new Date()) {
+      await this.database.deletePasswordResetToken(token);
+      throw new UnauthorizedException('Reset token has expired.');
+    }
+
+    const account = await this.database.getAuthAccountByEmail(email);
+    if (!account || account.userId !== resetToken.userId) {
+      throw new UnauthorizedException('Invalid reset token for this account.');
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password and clean up token
+    await this.database.updateAuthAccountPassword(email, hashedPassword);
+    await this.database.deletePasswordResetToken(token);
   }
 }

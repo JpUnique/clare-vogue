@@ -179,6 +179,51 @@ export class DatabaseService implements OnModuleDestroy {
       .where(eq(schema.authAccountProfiles.email, email.toLowerCase()));
   }
 
+  async createPasswordResetToken(
+    userId: string,
+    token: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    if (!this.database) {
+      throw new ServiceUnavailableException('Database is not configured.');
+    }
+
+    await this.database.insert(schema.passwordResetTokens).values({
+      userId: userId as any,
+      token,
+      expiresAt,
+    });
+  }
+
+  async getPasswordResetToken(
+    token: string,
+  ): Promise<{ userId: string; expiresAt: Date } | null> {
+    if (!this.database) {
+      throw new ServiceUnavailableException('Database is not configured.');
+    }
+
+    const result = await this.database
+      .select({
+        userId: schema.passwordResetTokens.userId,
+        expiresAt: schema.passwordResetTokens.expiresAt,
+      })
+      .from(schema.passwordResetTokens)
+      .where(eq(schema.passwordResetTokens.token, token))
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
+  async deletePasswordResetToken(token: string): Promise<void> {
+    if (!this.database) {
+      throw new ServiceUnavailableException('Database is not configured.');
+    }
+
+    await this.database
+      .delete(schema.passwordResetTokens)
+      .where(eq(schema.passwordResetTokens.token, token));
+  }
+
   async withAuthorizedBusinessTransaction<Result>(
     userId: string,
     operation: (
