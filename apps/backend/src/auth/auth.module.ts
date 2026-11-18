@@ -19,7 +19,7 @@ import { DatabaseService } from '../database/database.service.js';
       signOptions: { expiresIn: '15m' },
     }),
   ],
-  controllers: [AuthController, AuthControllerV2],
+  controllers: [AuthControllerV2],
   providers: [
     {
       provide: SUPABASE_AUTH_CLIENT,
